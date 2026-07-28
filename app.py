@@ -124,7 +124,8 @@ tab_practice, tab_crm, tab_analyzer, tab_scenario, tab_api = st.tabs([
 ])
 
 # ----------------- DYNAMIC SEAMLESS CHECKOUT MODAL FUNCTION -----------------
-def render_instant_paywall(target_tier, price_str, features_list):
+# Added context_key to make Streamlit form keys unique and prevent Duplicate Form exceptions!
+def render_instant_paywall(target_tier, price_str, features_list, context_key="default"):
     st.markdown(
         f"""
         <div class='card' style='border: 2px solid #1B365D; background-color: #fdfefe;'>
@@ -140,8 +141,8 @@ def render_instant_paywall(target_tier, price_str, features_list):
         st.write(f"* ✔ {feat}")
     st.markdown("</ul></div>", unsafe_allow_html=True)
     
-    # Standard Card payment simulator form right in the app
-    with st.form("seamless_card_payment_form"):
+    # Standard Card payment simulator form right in the app (Unique Key per Tab Context)
+    with st.form(f"seamless_card_payment_form_{context_key}"):
         st.write("### 💳 Secure Credit/Debit Card & PayPal Gateway")
         pay_card = st.text_input("Card Number:", placeholder="4111 2222 3333 4444")
         col_pay1, col_pay2 = st.columns(2)
@@ -178,7 +179,8 @@ with tab_practice:
                 "Unlimited Outbound Practice Calls (No daily constraints)",
                 "Full integration with Google AI Studio (Gemini)",
                 "Access to all 3 standard contractor and B2B buyer templates"
-            ]
+            ],
+            context_key="practice_tab_paywall"
         )
     else:
         # Standard configuration panel
@@ -407,7 +409,8 @@ with tab_crm:
                 "Advanced AI Call Recording Auditor & Sentiment Analysis Tool",
                 "Deploy custom scenario profiles team-wide (Manager Console)",
                 "Full Developer API access and HubSpot / Salesforce automatic webhooks"
-            ]
+            ],
+            context_key="crm_tab_paywall"
         )
     else:
         st.write("### Active Deal Pipeline Database")
@@ -464,7 +467,8 @@ with tab_analyzer:
                 "Advanced AI Call Recording Auditor & Sentiment Analysis Tool",
                 "Deploy custom scenario profiles team-wide (Manager Console)",
                 "Full Developer API access and HubSpot / Salesforce automatic webhooks"
-            ]
+            ],
+            context_key="analyzer_tab_paywall"
         )
     else:
         sample_transcript = """[0:02] Rep: Hey Mike, this is Ikechukwu here from Jobtable. How is your afternoon going?
@@ -535,7 +539,8 @@ with tab_scenario:
                 "Advanced AI Call Recording Auditor & Sentiment Analysis Tool",
                 "Deploy custom scenario profiles team-wide (Manager Console)",
                 "Full Developer API access and HubSpot / Salesforce automatic webhooks"
-            ]
+            ],
+            context_key="scenario_tab_paywall"
         )
     else:
         col_p1, col_p2 = st.columns(2)
@@ -568,7 +573,8 @@ with tab_api:
                 "Advanced AI Call Recording Auditor & Sentiment Analysis Tool",
                 "Deploy custom scenario profiles team-wide (Manager Console)",
                 "Full Developer API access and HubSpot / Salesforce automatic webhooks"
-            ]
+            ],
+            context_key="api_tab_paywall"
         )
     else:
         st.markdown(
