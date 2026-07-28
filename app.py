@@ -2,599 +2,571 @@ import streamlit as st
 import pandas as pd
 import random
 import time
+import requests
 
 # Set up page configurations
 st.set_page_config(
-    page_title="SalesFlow AI - Unified Sales Workspace & Coach",
-    page_icon="🎯",
+    page_title="My Sales Copilot - Outbound & Closing Suite",
+    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom Styling
+# ----------------- ADVANCED CUSTOM UI STYLING (CSS Injection) -----------------
 st.markdown("""
 <style>
-    .main { background-color: #fafbfc; }
-    h1, h2 { color: #1B365D; font-family: 'Helvetica Neue', Arial, sans-serif; font-weight: 700; }
-    h3 { color: #5A6B7C; }
-    .stButton>button { background-color: #1B365D; color: white; border-radius: 5px; }
-    .stButton>button:hover { background-color: #5A6B7C; color: white; }
-    .card {
-        background-color: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        margin-bottom: 20px;
-        border: 1px solid #e1e4e6;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+    
+    /* Global Base Reset */
+    .main { 
+        background-color: #f8fafc; 
+        font-family: 'Inter', sans-serif;
     }
-    .badge {
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: bold;
+    
+    /* Clean Typography styling */
+    h1 { 
+        color: #0f172a; 
+        font-family: 'Inter', sans-serif; 
+        font-weight: 800; 
+        letter-spacing: -0.02em;
+    }
+    h2 { 
+        color: #1e293b; 
+        font-family: 'Inter', sans-serif; 
+        font-weight: 700;
+        letter-spacing: -0.01em;
+    }
+    h3 { 
+        color: #334155; 
+        font-family: 'Inter', sans-serif; 
+        font-weight: 600;
+    }
+    
+    /* Premium Metric Card Container */
+    .metric-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+        border: 1px solid #f1f5f9;
+        border-left: 6px solid #1e40af;
+        transition: all 0.3s ease;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+    }
+    
+    /* Custom button states */
+    .stButton>button {
+        background: #1e40af;
+        color: white;
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 10px 20px;
+        border: none;
+        box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
+        transition: all 0.2s ease;
+    }
+    .stButton>button:hover {
+        background: #1d4ed8;
+        transform: translateY(-1px);
+        box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.3);
+    }
+    
+    /* Custom Badges */
+    .badge-free {
+        background: #10b981;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ----------------- SESSION STATE INITIALIZATION -----------------
-# 1. User Account Tier State: "Free", "Practice Pro", "Enterprise"
-if "user_tier" not in st.session_state:
-    st.session_state.user_tier = "Free"
-# 2. Daily Practice Limit (Message Counter)
-if "practice_message_count" not in st.session_state:
-    st.session_state.practice_message_count = 0
-# 3. Active Chat Logs
+# 1. Active Chat Logs
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "is_call_active" not in st.session_state:
     st.session_state.is_call_active = False
-# 4. Scenario Settings
+# 2. Scenario Settings (Universal & easily customized)
 if "setup_industry" not in st.session_state:
     st.session_state.setup_industry = "HVAC / Plumbing Dispatch Software (Jobtable)"
 if "setup_persona" not in st.session_state:
-    st.session_state.setup_persona = "Bob Miller, Gruff Plumbing Business Owner"
+    st.session_state.setup_persona = "Bob Miller, Miller & Sons Plumbing (Owner)"
 if "setup_mood" not in st.session_state:
-    st.session_state.setup_mood = "Super Stressed, working on-site, tech-averse"
-# 5. CRM Leads Database
-if "crm_data" not in st.session_state:
-    st.session_state.crm_data = pd.DataFrame([
-        {"ID": "C101", "Name": "Miller & Sons Plumbing", "Contact": "Bob Miller", "Stage": "Qualified Lead", "Value": 4500, "Assigned Rep": "Ikechukwu Onuekwusi", "Last Action": "Objection handled regarding paper billing"},
-        {"ID": "C102", "Name": "BrightSpark Electrical", "Contact": "Sarah Jenkins", "Stage": "Demo Scheduled", "Value": 3200, "Assigned Rep": "Ikechukwu Onuekwusi", "Last Action": "Scheduled for Tuesday morning walkthrough"},
-        {"ID": "C103", "Name": "Apex Climate Systems", "Contact": "Dave Kowalski", "Stage": "Contacted", "Value": 12000, "Assigned Rep": "Jane Doe", "Last Action": "Sent comparison sheet vs ServiceTitan"},
-        {"ID": "C104", "Name": "Tri-State Roofing", "Contact": "Mark Henderson", "Stage": "Closed-Won", "Value": 6000, "Assigned Rep": "Jane Doe", "Last Action": "Contract signed, QuickBooks synced"}
-    ])
-# 6. Team Personas
-if "personas" not in st.session_state:
-    st.session_state.personas = [
-        {"Name": "Enterprise HVAC Manager", "Difficulty": "Hard", "Objections": "Integration, multi-site pricing"},
-        {"Name": "Skeptical Dental Admin", "Difficulty": "Medium", "Objections": "HIPAA compliance, training time"}
-    ]
+    st.session_state.setup_mood = "Super Stressed, working under a sink, tech-skeptical"
+# 3. Analytics
+if "objections_handled" not in st.session_state:
+    st.session_state.objections_handled = 0
+if "score" not in st.session_state:
+    st.session_state.score = 100
 
-# ----------------- SIDEBAR: ACCOUNT CONSOLE -----------------
+# ----------------- SIDEBAR: AI CO-PILOT CONFIGURATION -----------------
 with st.sidebar:
     st.image("https://weworkremotely.com/assets/company-name-new-listing-icon-1535d75c2a56fe22cf7821636a862de6f5dcb83b1395dc2c164b77476b274c99.svg", width=120)
-    st.title("SalesFlow Studio")
-    
-    # Tier Indicator Badge
-    if st.session_state.user_tier == "Free":
-        st.markdown("`<span class='badge' style='background-color: #f0f2f6; color: #5a6b7c;'>🔓 FREE PRACTICE TIER</span>`", unsafe_allow_html=True)
-        st.write(f"**Usage Limit:** {st.session_state.practice_message_count}/5 Free Daily Messages")
-    elif st.session_state.user_tier == "Practice Pro":
-        st.markdown("`<span class='badge' style='background-color: #d1e7dd; color: #0f5132;'>🔥 PRACTICE PRO ACTIVE</span>`", unsafe_allow_html=True)
-        st.write("**Practice calls:** Unlimited")
-    elif st.session_state.user_tier == "Enterprise":
-        st.markdown("`<span class='badge' style='background-color: #cfe2ff; color: #084298;'>💼 ENTERPRISE SUITE ACTIVE</span>`", unsafe_allow_html=True)
-        st.write("**All Modules Unlocked**")
-
+    st.title("My Sales Copilot")
+    st.markdown("<p style='color: #64748b; font-size: 13px; margin-top: 0px;'>Proprietary Rep Command Suite</p>", unsafe_allow_html=True)
+    st.markdown("<span class='badge-free'>🔓 PERSONAL ACTIVE UTILITY</span>", unsafe_allow_html=True)
     st.write("---")
     
-    # Quick API key configuration (for Google AI Studio)
-    st.subheader("🔑 API Studio Key")
-    gemini_key = st.text_input("Gemini API Key:", type="password", help="Paste your free API key from Google AI Studio")
+    # Dual API Configurator Selection
+    st.subheader("🤖 Connect AI Brain")
+    api_provider = st.selectbox("Select API Provider:", ["Practice Simulator (Offline)", "Google Gemini API", "DeepSeek API"])
     
-    st.write("---")
-    
-    # Dev/Demo Bypass tool (For the job application review)
-    st.subheader("🛠️ Developer Tool")
-    dev_bypass = st.text_input("Bypass Admin Key:", type="password")
-    if dev_bypass == "salesflow99":
-        st.session_state.user_tier = "Enterprise"
-        st.success("Developer Bypass: Unlocked Enterprise Mode!")
-        st.rerun()
-        
-    if st.button("Reset Usage & Account Tier", use_container_width=True):
-        st.session_state.user_tier = "Free"
-        st.session_state.practice_message_count = 0
-        st.session_state.messages = []
-        st.session_state.is_call_active = False
-        st.success("App completely reset.")
-        st.rerun()
-
-# ----------------- MAIN NAVIGATION -----------------
-st.title("🎯 SalesFlow All-in-One Sales Suite")
-st.write("The ultimate workspace combining free AI practice roleplays with professional enterprise sales enablement pipelines.")
-
-# Create main navigation tabs
-tab_practice, tab_crm, tab_analyzer, tab_scenario, tab_api = st.tabs([
-    "📞 AI Outbound Practice Arena",
-    "📊 CRM Pipeline & Stages",
-    "🎙️ AI Call Recording Analyzer",
-    "⚙️ Custom Scenario Builder",
-    "🔌 Developer API Hub"
-])
-
-# ----------------- DYNAMIC SEAMLESS CHECKOUT MODAL FUNCTION -----------------
-# Added context_key to make Streamlit form keys unique and prevent Duplicate Form exceptions!
-def render_instant_paywall(target_tier, price_str, features_list, context_key="default"):
-    st.markdown(
-        f"""
-        <div class='card' style='border: 2px solid #1B365D; background-color: #fdfefe;'>
-            <h3 style='color: #1B365D; text-align: center;'>🔐 Upgrade Instantly to {target_tier}</h3>
-            <p style='text-align: center; font-size: 26px; font-weight: bold;'>{price_str}</p>
-            <p style='text-align: center;'>Frictionless checkout. No registration keys required. Pay and unlock instantly below.</p>
-            <hr/>
-            <p><b>Features Unlocked:</b></p>
-            <ul>
-        """, unsafe_allow_html=True
-    )
-    for feat in features_list:
-        st.write(f"* ✔ {feat}")
-    st.markdown("</ul></div>", unsafe_allow_html=True)
-    
-    # Standard Card payment simulator form right in the app (Unique Key per Tab Context)
-    with st.form(f"seamless_card_payment_form_{context_key}"):
-        st.write("### 💳 Secure Credit/Debit Card & PayPal Gateway")
-        pay_card = st.text_input("Card Number:", placeholder="4111 2222 3333 4444")
-        col_pay1, col_pay2 = st.columns(2)
-        with col_pay1:
-            pay_expiry = st.text_input("Expiry Date:", placeholder="MM/YY")
-        with col_pay2:
-            pay_cvv = st.text_input("CVV:", type="password", placeholder="123")
-            
-        pay_submit = st.form_submit_button(f"Pay & Unlock {target_tier} Instantly")
-        if pay_submit:
-            if pay_card and pay_expiry and pay_cvv:
-                with st.spinner("Authorizing secure bank network transaction..."):
-                    time.sleep(1.5)
-                st.session_state.user_tier = target_tier
-                st.session_state.practice_message_count = 0
-                st.balloons()
-                st.success(f"🎉 **PAYMENT SUCCESSFUL!** Your account has been seamlessly upgraded to **{target_tier}**. All restrictions are cleared!")
-                time.sleep(1.0)
-                st.rerun()
-            else:
-                st.error("Please enter valid billing details to complete your card transaction.")
-
-# ----------------- TAB 1: PRACTICE ARENA (FRONT & CENTER) -----------------
-with tab_practice:
-    st.subheader("🚀 Interactive Outbound Practice")
-    
-    # Check if the user has hit their free daily practice limit
-    if st.session_state.user_tier == "Free" and st.session_state.practice_message_count >= 5:
-        st.error("🚫 **DAILY TRIAL EXCEEDED.** You have completed your 5 free dialogue practice turns for today.")
-        render_instant_paywall(
-            target_tier="Practice Pro",
-            price_str="$5.99 USD / month",
-            features_list=[
-                "Unlimited Outbound Practice Calls (No daily constraints)",
-                "Full integration with Google AI Studio (Gemini)",
-                "Access to all 3 standard contractor and B2B buyer templates"
-            ],
-            context_key="practice_tab_paywall"
-        )
-    else:
-        # Standard configuration panel
-        st.write("Configure your scenario parameters or select a template to load:")
-        
-        # 1-Click Preset Buttons
-        col_t1, col_t2, col_t3 = st.columns(3)
-        with col_t1:
-            if st.button("🔧 Preset: Jobtable Contractor Software", use_container_width=True):
-                st.session_state.setup_industry = "HVAC / Plumbing Mobile Invoicing Software (Jobtable)"
-                st.session_state.setup_persona = "Bob Miller, Gruff Plumbing Business Owner"
-                st.session_state.setup_mood = "Super Stressed, working on-site, tech-averse"
-                st.session_state.messages = []
-                st.session_state.is_call_active = False
-                st.rerun()
-        with col_t2:
-            if st.button("💼 Preset: HR B2B SaaS to CFO", use_container_width=True):
-                st.session_state.setup_industry = "HR Payroll & Employee Benefits SaaS"
-                st.session_state.setup_persona = "Sarah Jenkins, Analytical Enterprise CFO"
-                st.session_state.setup_mood = "Extremely professional, protective of company budgets, analytical"
-                st.session_state.messages = []
-                st.session_state.is_call_active = False
-                st.rerun()
-        with col_t3:
-            if st.button("🏠 Preset: B2C Real Estate Outbound", use_container_width=True):
-                st.session_state.setup_industry = "Residential Property Listing Services"
-                st.session_state.setup_persona = "Dave Kowalski, Skeptical Private Homeowner"
-                st.session_state.setup_mood = "Defensive, annoyed by agents, wants to sell FSBO"
-                st.session_state.messages = []
-                st.session_state.is_call_active = False
-                st.rerun()
-                
-        st.write("")
-        
-        # Custom setup inputs
-        col_c1, col_c2, col_c3 = st.columns(3)
-        with col_c1:
-            ui_industry = st.text_input("My Product/Industry:", value=st.session_state.setup_industry)
-        with col_c2:
-            ui_persona = st.text_input("Target Customer:", value=st.session_state.setup_persona)
-        with col_c3:
-            ui_mood = st.text_input("Buyer's Current Mood:", value=st.session_state.setup_mood)
-            
-        st.session_state.setup_industry = ui_industry
-        st.session_state.setup_persona = ui_persona
-        st.session_state.setup_mood = ui_mood
-        
-        st.write("---")
-        
-        # Call room split
-        col_room1, col_room2 = st.columns([2, 1])
-        
-        with col_room1:
-            st.write(f"### Live Simulation: Calling {ui_persona.split(',')[0]}")
-            initial_greeting = f"Hello? Yes, this is {ui_persona.split(',')[0]}. I'm in the middle of something {ui_mood.lower()}. Who is this and what's this about?"
-            
-            # Start Call Button
-            if not st.session_state.is_call_active:
-                if st.button("📞 Dial Phone Number", type="primary", use_container_width=True):
-                    st.session_state.is_call_active = True
-                    st.session_state.messages = [{"role": "assistant", "content": initial_greeting}]
-                    st.rerun()
-                    
-            # Render chat history
-            for msg in st.session_state.messages:
-                with st.chat_message(msg["role"]):
-                    st.write(msg["content"])
-                    
-            # User input handling
-            if st.session_state.is_call_active:
-                user_msg = st.chat_input("Enter your sales pitch...")
-                
-                if user_msg:
-                    # Increment usage count if on free tier
-                    if st.session_state.user_tier == "Free":
-                        st.session_state.practice_message_count += 1
-                        
-                    st.session_state.messages.append({"role": "user", "content": user_msg})
-                    st.chat_message("user").write(user_msg)
-                    
-                    with st.spinner("Prospect is typing..."):
-                        time.sleep(0.8)
-                        user_msg_lower = user_msg.lower()
-                        ai_reply = ""
-                        score_deduction = 0
-                        feedback_msg = ""
-                        end_call = False
-                        
-                        # Jargon Filter
-                        jargon = ["synergy", "paradigm shift", "digital transformation", "delighted to", "unprecedented efficiency", "disruptive innovations"]
-                        if any(word in user_msg_lower for word in jargon):
-                            ai_reply = f"Look, you sound like you are reading from a standard enterprise sales playbook. I don't do corporate buzzwords. Goodbye."
-                            score_deduction = 35
-                            feedback_msg = "Critical Sales Error! Buyers hate tech jargon and corporate scripts. Be direct, clear, and colloquial."
-                            end_call = True
-
-                        elif len(user_msg.split()) < 4:
-                            ai_reply = "If you don't even have a clear reason to speak with me, why are you calling my phone? Goodbye."
-                            score_deduction = 20
-                            feedback_msg = "Your response was too short. Speak with confident pacing and clarity."
-                            end_call = True
-
-                        # 1. LIVE GEMINI AI MODE
-                        elif gemini_key:
-                            try:
-                                import google.generativeai as genai
-                                genai.configure(api_key=gemini_key)
-
-                                system_prompt = f"""
-                                You are roleplaying as {ui_persona}, a target customer in the {ui_industry} space.
-                                Your current personality/mood constraint is: {ui_mood}.
-                                The user is an outbound SDR cold calling you.
-                                
-                                Your Goal: Act as a highly realistic, tough, skeptical buyer. Respond to the user's messages brief, blunt, and naturally.
-                                You must challenge the user with typical objections relevant to {ui_industry} (e.g. 'not interested,' 'too expensive,' 'already have a competitor,' 'send me an email').
-                                
-                                Rules of Engagement:
-                                1. Stay completely in character.
-                                2. Do not agree to a 10-minute meeting on the first turn. Push back at least twice.
-                                3. If they handle your objections well (using consultative empathy, avoiding scripts, showing clear micro-value, and proposing a frictionless 10-minute meeting), agree to the calendar invite.
-                                4. If they read a scripted pitch, use tech jargon, or don't listen, hang up on them.
-                                """
-                                model = genai.GenerativeModel(
-                                    model_name="gemini-1.5-flash",
-                                    system_instruction=system_prompt
-                                )
-
-                                response = model.generate_content(user_msg)
-                                ai_reply = response.text
-
-                                if any(word in user_msg_lower for word in ["demo", "10 minutes", "tuesday", "schedule", "calendar"]):
-                                    st.session_state.objections_handled += 1
-
-                            except Exception as e:
-                                st.error(f"Gemini API Error: {str(e)}. Defaulting to Practice Simulator.")
-
-                        # 2. OFFLINE SIMULATOR MODE
-                        if not ai_reply:
-                            if any(word in user_msg_lower for word in ["demo", "minutes", "schedule", "calendar", "meeting", "tuesday", "wednesday", "thursday"]):
-                                if st.session_state.objections_handled >= 1:
-                                    ai_reply = f"Fine. If it's really only going to take 10 minutes and you can show me how this actually solves our headaches with {ui_industry}, I'll take a look. Tuesday morning works. Send me a link."
-                                    feedback_msg = "Outstanding close! You validated their pains and successfully booked a low-friction meeting!"
-                                    end_call = True
-                                else:
-                                    ai_reply = f"A meeting? I don't even know who you are or why I should care. What are you actually selling?"
-                                    score_deduction = 15
-                                    feedback_msg = "You went for the meeting/demo ask too fast. Handle an objection and build basic value first!"
-                            
-                            elif any(word in user_msg_lower for word in ["busy", "time", "mid"]):
-                                ai_reply = f"Look, we are extremely busy right now managing our {ui_industry} pipeline. I don't have time for cold pitches."
-                                st.session_state.objections_handled += 1
-                                feedback_msg = "Objection: Busy Brush-off. Empathize immediately, pivot to time-saving, and suggest a 10-min slot next week."
-                            
-                            elif any(word in user_msg_lower for word in ["price", "cost", "expensive", "money", "budget"]):
-                                ai_reply = f"Our budgets are completely locked for this quarter. We can't afford to bring on new expenses."
-                                st.session_state.objections_handled += 1
-                                feedback_msg = "Objection: Budget constraint. Pivot to ROI—explain how your tool saves them more money than it costs."
-                            
-                            elif any(word in user_msg_lower for word in ["already", "competitor", "happy", "using"]):
-                                ai_reply = f"We already have a system in place that handles {ui_industry} operations. I am not looking to switch."
-                                st.session_state.objections_handled += 1
-                                feedback_msg = "Objection: Competitor/Status Quo. Acknowledge and respect their current tool, then suggest a 10-min comparative walkthrough."
-                            
-                            elif any(word in user_msg_lower for word in ["email", "send"]):
-                                ai_reply = f"Just send me an email. I'll take a look at it when I have some free time."
-                                st.session_state.objections_handled += 1
-                                feedback_msg = "Objection: Send me an email. Agree enthusiastically, then ask a simple qualification question to keep them talking!"
-                            
-                            else:
-                                responses = [
-                                    f"Why should we look at your product? Whiteboards and spreadsheets work fine for our {ui_industry}.",
-                                    f"Is this going to require our team to learn a complex new process, or is it actually simple?",
-                                    f"What separates you from every other cold caller hitting my phone today?"
-                                ]
-                                ai_reply = random.choice(responses)
-                                score_deduction = 10
-                                feedback_msg = "Prospect is testing you. Empathize with their daily operational friction and highlight how simple your product is."
-
-                        # Record reply
-                        st.session_state.score = max(0, st.session_state.score - score_deduction)
-                        st.session_state.messages.append({"role": "assistant", "content": ai_reply})
-                        st.chat_message("assistant").write(ai_reply)
-
-                        # Output coaching feedback
-                        if feedback_msg:
-                            if score_deduction > 0:
-                                st.warning(f"💡 **Coach Tip:** {feedback_msg} (-{score_deduction} pts)")
-                            else:
-                                st.success(f"💡 **Coach Tip:** {feedback_msg}")
-
-                        if end_call:
-                            st.session_state.is_call_active = False
-                            st.write("---")
-                            if st.session_state.score >= 80:
-                                st.balloons()
-                                st.success("🎉 **SUCCESSFUL DEMO BOOKED!** You successfully navigated the objection obstacles. Outstanding adaptive performance!")
-                            else:
-                                st.error("❌ **CALL ENDED.** The prospect hung up on you. Practice makes perfect—review the Coach Tips and click dial to retry.")
-                            
-                            if st.button("Reset Simulator"):
-                                st.session_state.messages = []
-                                st.session_state.is_call_active = False
-                                st.rerun()
-                                
-        with col_room2:
-            st.subheader("💡 Coach Checklist")
+    api_key = ""
+    if api_provider == "Google Gemini API":
+        api_key = st.text_input("Gemini API Key:", type="password", help="Paste your free API key from Google AI Studio")
+        with st.expander("ℹ️ How to get your FREE Gemini Key"):
             st.markdown(
                 """
-                *   **Acknowledge and Pivot:** Never argue with an objection. Agree that their time/current setup is valuable, then pivot to how you simplify their lives.
-                *   **Focus on the Core Benefit:** Explain your product simply. *“No more spreadsheets at 10 PM,”* or *“Techs bill directly in the driveway.”*
-                *   **The Low-Friction Close:** Ask for a 10-minute walkthrough, never a 1-hour demonstration.
+                1. Go to <a href='https://aistudio.google.com/' target='_blank'><b>Google AI Studio</b></a>.
+                2. Click the blue **\"Get API Key\"** button in the top left.
+                3. Click **\"Create API Key in new project\"** and paste it here!
+                """,
+                unsafe_allow_html=True
+            )
+    elif api_provider == "DeepSeek API":
+        api_key = st.text_input("DeepSeek API Key:", type="password", help="Paste your DeepSeek API key")
+        with st.expander("ℹ️ How to get your DeepSeek Key"):
+            st.markdown(
+                """
+                1. Go to <a href='https://platform.deepseek.com/' target='_blank'><b>DeepSeek Platform</b></a>.
+                2. Sign up and top up a few cents/dollars (DeepSeek is extremely cheap, costing cents for thousands of calls).
+                3. Go to **\"API Keys\"** on the left menu, create a key, and paste it here!
+                """,
+                unsafe_allow_html=True
+            )
+            
+    st.write("---")
+    
+    # Active Session Analytics
+    st.subheader("📈 My Practice Performance")
+    st.metric("Tone Match Score", f"{st.session_state.score}/100")
+    st.metric("Objections Handled", f"{st.session_state.objections_handled}")
+    
+    if st.button("Reset Active Session", use_container_width=True):
+        st.session_state.messages = []
+        st.session_state.is_call_active = False
+        st.session_state.score = 100
+        st.session_state.objections_handled = 0
+        st.success("Session reset.")
+        st.rerun()
+
+# ----------------- MAIN HEADER BANNER -----------------
+st.markdown(
+    """
+    <div style='background-color: #ffffff; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 25px; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.02);'>
+        <h1 style='margin: 0px;'>⚡ My Proprietary Sales SDR Copilot</h1>
+        <p style='color: #64748b; font-size: 16px; margin-top: 5px; margin-bottom: 0px;'>My private operational dashboard. I use this tool daily to roleplay complex objections, write high-converting outbound emails, generate SMS text replies, and storyboard Loom prospecting video pitches.</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# ----------------- TABS: SDR UTILITIES (FULLY UNLOCKED) -----------------
+tab_practice, tab_emails, tab_sms, tab_videos, tab_battlecards = st.tabs([
+    "📞 Outbound & Closing Roleplay Arena",
+    "✉️ AI Outbound Email Composer",
+    "💬 AI Text Response & SMS Writer",
+    "🎬 AI Video Prospecting Script Studio",
+    "🛡️ My Closing Objection Battlecards"
+])
+
+# ----------------- TAB 1: PRACTICE ARENA -----------------
+with tab_practice:
+    st.subheader("🎯 Outbound Practice & Closing Simulator")
+    st.write("Configure your prospect (plumber, enterprise executive, or private home buyer) and practice handling cold calls or closing deals on-the-spot:")
+    
+    # Standard Presets
+    col_t1, col_t2, col_t3 = st.columns(3)
+    with col_t1:
+        if st.button("🔧 Preset: Bob Miller (Plumbing / Contractor)", use_container_width=True):
+            st.session_state.setup_industry = "HVAC / Plumbing Mobile Invoicing Software (Jobtable)"
+            st.session_state.setup_persona = "Bob Miller, Miller & Sons Plumbing (Owner)"
+            st.session_state.setup_mood = "Super Stressed, working under a sink, tech-skeptical"
+            st.session_state.messages = []
+            st.session_state.is_call_active = False
+            st.rerun()
+    with col_t2:
+        if st.button("💼 Preset: Sarah Jenkins (Electrical / Contractor)", use_container_width=True):
+            st.session_state.setup_industry = "Jobtable dispatch & billing software for Electricians"
+            st.session_state.setup_persona = "Sarah Jenkins, BrightSpark Electrical (Owner-Operator)"
+            st.session_state.setup_mood = "Driving between jobs, overwhelmed by admin paperwork backlog, QuickBooks user"
+            st.session_state.messages = []
+            st.session_state.is_call_active = False
+            st.rerun()
+    with col_t3:
+        if st.button("🏠 Preset: Dave Kowalski (HVAC / Contractor)", use_container_width=True):
+            st.session_state.setup_industry = "Jobtable job scheduling & invoicing software for HVAC"
+            st.session_state.setup_persona = "Dave Kowalski, Apex Heating & Air (Owner)"
+            st.session_state.setup_mood = "On a commercial rooftop, highly skeptical of sales reps, happy with paper"
+            st.session_state.messages = []
+            st.session_state.is_call_active = False
+            st.rerun()
+            
+    st.write("")
+    
+    # Custom configuration inputs (Make it completely universal!)
+    col_c1, col_c2, col_c3 = st.columns(3)
+    with col_c1:
+        ui_industry = st.text_input("My Product/Industry:", value=st.session_state.setup_industry, help="What are you pitching? e.g. Jobtable, Real estate, B2B SaaS, etc.")
+    with col_c2:
+        ui_persona = st.text_input("Target Customer Persona:", value=st.session_state.setup_persona, help="Who are you calling? (Title, Company, background)")
+    with col_c3:
+        ui_mood = st.text_input("Buyer's Current Mood/Objection Constraints:", value=st.session_state.setup_mood, help="How should the AI behave? e.g. Extremely busy, price-focused, already using a competitor")
+        
+    st.session_state.setup_industry = ui_industry
+    st.session_state.setup_persona = ui_persona
+    st.session_state.setup_mood = ui_mood
+    
+    st.write("---")
+    
+    col_room1, col_room2 = st.columns([2, 1])
+    
+    with col_room1:
+        # Visual Helper
+        if api_provider == "Practice Simulator (Offline)":
+            st.info("💡 **My Sales Tool Note:** Currently in **Practice Simulator Mode**. To connect this app directly to the advanced live brains of Google Gemini or DeepSeek, simply configure your selection in the sidebar and paste your API key!")
+            
+        st.write(f"### Live Session: Speaking with {ui_persona.split(',')[0]}")
+        initial_greeting = f"Yeah, this is {ui_persona.split(',')[0]} speaking. I'm literally in the middle of a job site right now. Make it quick, what is this?"
+        
+        if not st.session_state.is_call_active:
+            if st.button("📞 Initiate Active Outbound Dial", type="primary", use_container_width=True):
+                st.session_state.is_call_active = True
+                st.session_state.messages = [{"role": "assistant", "content": initial_greeting}]
+                st.rerun()
+                
+        for msg in st.session_state.messages:
+            with st.chat_message(msg["role"]):
+                st.write(msg["content"])
+                
+        if st.session_state.is_call_active:
+            user_msg = st.chat_input("Enter your sales pitch response...")
+            
+            if user_msg:
+                st.session_state.messages.append({"role": "user", "content": user_msg})
+                st.chat_message("user").write(user_msg)
+                
+                with st.spinner("Prospect is typing..."):
+                    time.sleep(0.8)
+                    user_msg_lower = user_msg.lower()
+                    ai_reply = ""
+                    score_deduction = 0
+                    feedback_msg = ""
+                    end_call = False
+                    
+                    # Jargon Filter
+                    jargon = ["synergy", "paradigm shift", "digital transformation", "delighted to", "unprecedented efficiency", "disruptive innovations"]
+                    if any(word in user_msg_lower for word in jargon):
+                        ai_reply = f"Look, you sound like you are reading from a standard enterprise sales playbook. I don't do corporate buzzwords. Goodbye."
+                        score_deduction = 35
+                        feedback_msg = "Critical Sales Error! Buyers hate tech jargon and corporate scripts. Be direct, clear, and colloquial."
+                        end_call = True
+
+                    elif len(user_msg.split()) < 4:
+                        ai_reply = "If you don't even have a clear reason to speak with me, why are you calling my phone? Goodbye."
+                        score_deduction = 20
+                        feedback_msg = "Your response was too short. Speak with confident pacing and clarity."
+                        end_call = True
+
+                    # 1. LIVE GOOGLE GEMINI MODE
+                    elif api_provider == "Google Gemini API" and api_key:
+                        try:
+                            import google.generativeai as genai
+                            genai.configure(api_key=api_key)
+
+                            system_prompt = f"""
+                            You are roleplaying as {ui_persona}, a target customer in the {ui_industry} space.
+                            Your current personality/mood constraint is: {ui_mood}.
+                            The user (Ikechukwu) is an outbound SDR cold calling you to pitch their product.
+                            
+                            Your Goal: Act as a highly realistic, tough, skeptical buyer. Respond to the user's messages brief, blunt, and naturally.
+                            You must challenge the user with typical objections relevant to {ui_industry} (e.g. 'not interested,' 'too expensive,' 'already happy with paper,' 'using a competitor like Jobber/ServiceTitan').
+                            
+                            Rules of Engagement:
+                            1. Stay completely in character.
+                            2. Do not agree to a 10-minute meeting on the first turn. Push back at least twice.
+                            3. If they handle your objections well (using consultative empathy, avoiding scripts, showing clear micro-value, and proposing a frictionless 10-minute meeting), agree to the calendar invite.
+                            4. If they read a scripted pitch, use tech jargon, or don't listen, hang up on them.
+                            """
+                            model = genai.GenerativeModel(
+                                model_name="gemini-1.5-flash",
+                                system_instruction=system_prompt
+                            )
+
+                            response = model.generate_content(user_msg)
+                            ai_reply = response.text
+
+                            if any(word in user_msg_lower for word in ["demo", "10 minutes", "tuesday", "schedule", "calendar"]):
+                                st.session_state.objections_handled += 1
+
+                            # Tone & pacing deduct calculation
+                            if any(j in user_msg_lower for j in ["solution", "synergy", "paradigm"]):
+                                score_deduction = 15
+                                feedback_msg = "Slight tone mismatch. Keep the phrasing natural and trade-focused."
+
+                        except Exception as e:
+                            st.error(f"Gemini API Error: {str(e)}. Defaulting to Practice Simulator.")
+
+                    # 2. LIVE DEEPSEEK API MODE
+                    elif api_provider == "DeepSeek API" and api_key:
+                        try:
+                            # Standard REST API payload for DeepSeek
+                            headers = {
+                                "Content-Type": "application/json",
+                                "Authorization": f"Bearer {api_key}"
+                            }
+                            
+                            system_prompt = f"You are roleplaying as {ui_persona}, a target customer in the {ui_industry} space. Mood: {ui_mood}. The user is an outbound sales representative. Act as a realistic, skeptical, busy buyer. Respond with brief, blunt, natural objections. Force them to overcome objections before booking a 10-min meeting."
+                            
+                            # Construct conversation payload
+                            history_payload = [{"role": "system", "content": system_prompt}]
+                            for m in st.session_state.messages[:-1]:
+                                role_map = "assistant" if m["role"] == "assistant" else "user"
+                                history_payload.append({"role": role_map, "content": m["content"]})
+                            
+                            history_payload.append({"role": "user", "content": user_msg})
+                            
+                            data = {
+                                "model": "deepseek-chat",
+                                "messages": history_payload,
+                                "temperature": 0.7
+                            }
+                            
+                            response = requests.post("https://api.deepseek.com/v1/chat/completions", json=data, headers=headers, timeout=15)
+                            
+                            if response.status_code == 200:
+                                ai_reply = response.json()["choices"][0]["message"]["content"]
+                                if any(word in user_msg_lower for word in ["demo", "10 minutes", "tuesday", "schedule", "calendar"]):
+                                    st.session_state.objections_handled += 1
+                            else:
+                                st.error(f"DeepSeek API Error (Code {response.status_code}): {response.text}")
+                                
+                        except Exception as e:
+                            st.error(f"Failed to connect to DeepSeek API: {str(e)}")
+
+                    # 3. OFFLINE SIMULATOR MODE (Fallback logic)
+                    if not ai_reply:
+                        if any(word in user_msg_lower for word in ["demo", "minutes", "schedule", "calendar", "meeting", "tuesday", "wednesday", "thursday"]):
+                            if st.session_state.objections_handled >= 1:
+                                ai_reply = f"Fine. If it's really only going to take 10 minutes and you can show me how this actually solves our headaches with {ui_industry}, I'll take a look. Tuesday morning works. Send me a link."
+                                feedback_msg = "Outstanding close! You validated their pains and successfully booked a low-friction meeting!"
+                                end_call = True
+                            else:
+                                ai_reply = f"A meeting? I just told you I'm in the middle of a job site. I don't even know why I should care. What are you actually selling?"
+                                score_deduction = 15
+                                feedback_msg = "You went for the meeting/demo ask too fast. Handle an objection and build basic value first!"
+                        
+                        elif any(word in user_msg_lower for word in ["busy", "time", "mid", "roof", "sink"]):
+                            ai_reply = f"Look, we are extremely busy right now managing our field calls. I don't have time for software cold pitches."
+                            st.session_state.objections_handled += 1
+                            feedback_msg = "Objection: Busy Brush-off. Empathize immediately, pivot to time-saving, and suggest a 10-min slot next week."
+                        
+                        elif any(word in user_msg_lower for word in ["price", "cost", "expensive", "money", "budget"]):
+                            ai_reply = f"Our margins are completely tight right now. We can't afford to bring on new monthly expenses."
+                            st.session_state.objections_handled += 1
+                            feedback_msg = "Objection: Budget constraint. Pivot to ROI—explain how your tool saves them more money than it costs."
+                        
+                        elif any(word in user_msg_lower for word in ["already", "competitor", "happy", "using", "jobber", "servicetitan"]):
+                            ai_reply = f"We already use ServiceTitan / Jobber to manage our HVAC and plumbing pipeline. We are happy with it."
+                            st.session_state.objections_handled += 1
+                            feedback_msg = "Objection: Competitor/Status Quo. Acknowledge and respect their current tool, then suggest a 10-min comparative walkthrough."
+                        
+                        elif any(word in user_msg_lower for word in ["email", "send"]):
+                            ai_reply = f"Just send me an email. I'll take a look at it when I'm back at the office on Sunday."
+                            st.session_state.objections_handled += 1
+                            feedback_msg = "Objection: Send me an email. Agree enthusiastically, then ask a simple qualification question to keep them talking!"
+                        
+                        else:
+                            responses = [
+                                f"Why should we look at your product? Whiteboards and spreadsheets work fine for our HVAC and plumbing crews.",
+                                f"Is this going to require our technicians to learn a complex new app, or is it actually simple?",
+                                f"What separates your system from every other cold caller hitting my phone today?"
+                            ]
+                            ai_reply = random.choice(responses)
+                            score_deduction = 10
+                            feedback_msg = "Prospect is testing you. Empathize with their daily operational friction and highlight how simple your product is."
+
+                    # Record reply
+                    st.session_state.score = max(0, st.session_state.score - score_deduction)
+                    st.session_state.messages.append({"role": "assistant", "content": ai_reply})
+                    st.chat_message("assistant").write(ai_reply)
+
+                    if feedback_msg:
+                        if score_deduction > 0:
+                            st.warning(f"💡 **Coach Tip:** {feedback_msg} (-{score_deduction} pts)")
+                        else:
+                            st.success(f"💡 **Coach Tip:** {feedback_msg}")
+
+                    if end_call:
+                        st.session_state.is_call_active = False
+                        st.write("---")
+                        if st.session_state.score >= 80:
+                            st.balloons()
+                            st.success("🎉 **SUCCESSFUL DEMO BOOKED!** You successfully navigated the objection obstacles. Outstanding adaptive performance!")
+                        else:
+                            st.error("❌ **CALL ENDED.** The prospect hung up on you. Practice makes perfect—review the Coach Tips and click dial to retry.")
+                        
+                        if st.button("Reset Simulator"):
+                            st.session_state.messages = []
+                            st.session_state.is_call_active = False
+                            st.rerun()
+                            
+    with col_room2:
+        st.subheader("💡 My Daily Coach Checklist")
+        st.markdown(
+            """
+            *   **Empathize & Validate:** Never argue with an objection. Agree that their time/current setup is valuable, then pivot to how you simplify their lives.
+            *   **Acknowledge and Pivot:** Speak with confident momentum. Re-phrase objections into business bottlenecks you solve.
+            *   **The Low-Friction Ask:** Propose a 10-minute comparison, never a 1-hour presentation.
+            """
+        )
+
+# ----------------- TAB 2: EMAIL COMPOSER (FULLY UNLOCKED) -----------------
+with tab_emails:
+    st.subheader("✉️ Outbound AI Follow-up Email Composer")
+    st.write("Generate a high-converting, personalized follow-up email sequence in 1 click for any industry:")
+    
+    col_em1, col_em2 = st.columns(2)
+    with col_em1:
+        em_trade = st.text_input("Target Customer Industry/Profile:", value="HVAC & Plumbing Contractors")
+        em_objection = st.selectbox("Objection Handled on Call:", ["Too Busy / Working On-Site", "Paper works fine", "Too Expensive / Tight Budgets", "Happy with Current Competitor"])
+    with col_em2:
+        em_date = st.text_input("Meeting Proposal Time:", value="Tuesday morning at 8:00 AM")
+        em_generate = st.button("✨ Generate Email Sequence", type="primary")
+        
+    if em_generate:
+        with st.spinner("AI is crafting your email sequence..."):
+            time.sleep(1.0)
+            st.markdown(
+                f"""
+                ### 📧 Recommended Email Template
+                **Subject:** 10 minutes to simplify your operations for {em_trade.lower()} on Tuesday?
+                
+                Hi [Contractor Name],
+                
+                Great speaking with you briefly while you were on that job site today. I know you're busy running your crew, so I promised to keep this short.
+                
+                When we spoke, you mentioned that **{em_objection.lower()}**. I completely understand—many of the direct business owners we partner with felt the exact same way. 
+                
+                But they saw how **{ui_industry}** eliminates late-night paperwork and gets them paid in the driveway before their trucks start up, syncing everything instantly to QuickBooks in one click.
+                
+                I won't pitch you over email. As agreed, let’s grab a quick 10-minute walkthrough on **{em_date}** so you can see how simple it is. 
+                
+                I have sent a calendar invite to your inbox. Speak then!
+                
+                Best,
+                
+                Ikechukwu Onuekwusi  
+                Outbound Sales Representative  
                 """
             )
 
-# ----------------- TAB 2: CRM PIPELINE (GATED) -----------------
-with tab_crm:
-    st.subheader("📊 SalesFlow CRM & Pipeline Stage Tracker")
+# ----------------- TAB 3: SMS COMPOSER (FULLY UNLOCKED) -----------------
+with tab_sms:
+    st.subheader("💬 AI Text Response & SMS Writer")
+    st.write("When buyers say **'Just text me details'** or **'I'm too busy, text me,'** copy-paste these low-friction SMS templates:")
     
-    if st.session_state.user_tier != "Enterprise":
-        st.warning("⚠️ **ENTERPRISE MODULE LOCKED.** Managing customer leads, tracking deal stages, and logging revenue pipeline is restricted to the **Enterprise Suite Tier**.")
-        render_instant_paywall(
-            target_tier="Enterprise",
-            price_str="$29.00 USD / month (Individual) or $99 / seat / mo (Enterprise)",
-            features_list=[
-                "Full-Featured Sales Pipeline & Lead CRM Stage Tracker",
-                "Advanced AI Call Recording Auditor & Sentiment Analysis Tool",
-                "Deploy custom scenario profiles team-wide (Manager Console)",
-                "Full Developer API access and HubSpot / Salesforce automatic webhooks"
-            ],
-            context_key="crm_tab_paywall"
-        )
-    else:
-        st.write("### Active Deal Pipeline Database")
-        df = st.session_state.crm_data
-        total_pipeline = df["Value"].sum()
-        closed_won = df[df["Stage"] == "Closed-Won"]["Value"].sum()
-        active_deals = df[df["Stage"] != "Closed-Won"]["Value"].count()
-        
-        col_m1, col_m2, col_m3 = st.columns(3)
-        with col_m1:
-            st.metric("Total Pipeline Value", f"${total_pipeline:,.2f}")
-        with col_m2:
-            st.metric("Closed-Won Revenue", f"${closed_won:,.2f}")
-        with col_m3:
-            st.metric("Active Deal Opportunities", f"{active_deals} Deals")
+    sms_trade = st.text_input("Target Trade/Profession:", value="Plumbing")
+    sms_pain = st.radio("Core Value Angle:", ["Reclaiming lost material charges", "Getting paid in the driveway (cashflow)", "Whiteboard scheduling headaches", "Bypassing night-time admin work"])
+    
+    if st.button("📱 Generate Outbound SMS"):
+        with st.spinner("AI is drafting your SMS response..."):
+            time.sleep(0.8)
             
-        st.write("---")
-        
-        # Interactive CRM editor
-        edited_df = st.data_editor(
-            df,
-            column_config={
-                "Stage": st.column_config.SelectboxColumn(
-                    "Customer Stage",
-                    options=["Lead", "Contacted", "Qualified Lead", "Demo Scheduled", "Closed-Won", "Closed-Lost"],
-                    required=True
-                ),
-                "Value": st.column_config.NumberColumn(
-                    "Contract Value ($)",
-                    format="$%d"
-                )
-            },
-            num_rows="dynamic",
-            use_container_width=True,
-            key="crm_editor"
-        )
-        
-        if st.button("💾 Save CRM Changes"):
-            st.session_state.crm_data = edited_df
-            st.success("CRM Pipeline synchronized with company server!")
-            st.rerun()
+            if sms_pain == "Reclaiming lost material charges":
+                sms_text = f"Hey [Name], completely hear you! Real quick: average {sms_trade.lower()} crews lose $500/mo in parts they forget to charge for. Jobtable makes it as simple as texting for techs to log materials on-site, protecting your margins. Grab 5 mins next Tuesday morning? - Ikechukwu, Jobtable"
+            elif sms_pain == "Getting paid in the driveway (cashflow)":
+                sms_text = f"Hey [Name], no worries! Plumbers use Jobtable to take card payments directly in the driveway as soon as the {sms_trade.lower()} job is done. Average company boosts cashflow by 20%. Grab 5 mins Tuesday morning before your first run? - Ikechukwu, Jobtable"
+            elif sms_pain == "Whiteboard scheduling headaches":
+                sms_text = f"Hey [Name], hear ya! Whiteboards and texts make scheduling {sms_trade.lower()} jobs a total puzzle. Jobtable is a drag-and-drop map app your guys master in 5 mins. Reclaim your office sanity. Grab 10 mins Tuesday morning? - Ikechukwu, Jobtable"
+            else:
+                sms_text = f"Hey [Name], understand! Most {sms_trade.lower()} owners spend their evenings doing manual invoices and double-entering into QuickBooks. Jobtable automates that so you get your nights back. Reclaim 10 hrs/week. Grab 10 mins Tuesday morning? - Ikechukwu, Jobtable"
+            
+            st.write("---")
+            st.info(f"**Copy & Send:**\n\n`{sms_text}`")
 
-# ----------------- TAB 3: AI CALL ANALYZER (GATED) -----------------
-with tab_analyzer:
-    st.subheader("🎙️ AI Call Recording Audit & Transcription Studio")
+# ----------------- TAB 4: VIDEO SCRIPT STUDIO (FULLY UNLOCKED) -----------------
+with tab_videos:
+    st.subheader("🎬 AI Video Prospecting Script Studio")
+    st.write("Record a personalized 60-second video (Loom/Vidalytics) to send directly to a contractor. Here is your storyboard:")
     
-    if st.session_state.user_tier != "Enterprise":
-        st.warning("⚠️ **ENTERPRISE MODULE LOCKED.** Analyzing call transcripts, scoring buyer sentiment, and writing automated AI follow-ups requires **Enterprise Suite Tier**.")
-        render_instant_paywall(
-            target_tier="Enterprise",
-            price_str="$29.00 USD / month (Individual) or $99 / seat / mo (Enterprise)",
-            features_list=[
-                "Full-Featured Sales Pipeline & Lead CRM Stage Tracker",
-                "Advanced AI Call Recording Auditor & Sentiment Analysis Tool",
-                "Deploy custom scenario profiles team-wide (Manager Console)",
-                "Full Developer API access and HubSpot / Salesforce automatic webhooks"
-            ],
-            context_key="analyzer_tab_paywall"
-        )
-    else:
-        sample_transcript = """[0:02] Rep: Hey Mike, this is Ikechukwu here from Jobtable. How is your afternoon going?
-[0:06] Buyer: I'm busy. I'm on a roof right now trying to fix a duct. Make it quick.
-[0:12] Rep: I completely understand, Mike, and I know your time is money. I saw you've been adding more technicians. We built a simple mobile app where your guys can click the parts they used on-site and invoice the customer right in the driveway before they leave. No more tracking down receipts.
-[0:22] Buyer: Well, we just use paper sheets, and then my office admin types them into QuickBooks. It's tedious, but it works.
-[0:30] Rep: Paper is reliable, absolutely. But paper doesn't talk to QuickBooks instantly. Jobtable syncs the driveway invoice straight into QuickBooks in one click, meaning you get paid today, and your admin gets her evenings back. I won't pitch you now. Can we grab just 10 minutes next Tuesday morning before your day starts to see it?
-[0:40] Buyer: Tuesday morning? If it's really only 10 minutes and simple, I guess I can take a look. Send me the calendar invite."""
-
-        transcript_input = st.text_area("Paste Sales Call Transcript:", value=sample_transcript, height=250)
-        
-        if st.button("🔍 Run AI Call Audit", type="primary", use_container_width=True):
-            with st.spinner("Analyzing call transcription sentiment and parsing sales bottlenecks..."):
-                time.sleep(1.2)
+    vid_trade = st.text_input("Target Trade Category:", value="Plumbing")
+    vid_prop = st.text_input("Physical Prop in Video (e.g. Copper pipeline elbow, receipt book, mobile phone):", value="Copper pipeline joint")
+    
+    if st.button("🎬 Generate Video Storyboard"):
+        with st.spinner("AI is storyboarding your video pitch..."):
+            time.sleep(1.0)
+            st.markdown(
+                f"""
+                ### 📹 60-Second Video Script: '{vid_prop}' Pattern
                 
-                st.write("---")
-                st.success("🎯 **AI AUDIT COMPLETE!**")
-                
-                col_a1, col_a2, col_a3 = st.columns(3)
-                with col_a1:
-                    st.metric("Buyer Sentiment Score", "85% (Favorable)")
-                with col_a2:
-                    st.metric("Objections Detected", "2 Objections")
-                with col_a3:
-                    st.metric("Deal Progression Probability", "92% (High)")
-                    
-                st.markdown(
-                    f"""
-                    ### 📋 AI Audit Analysis
-                    *   **Objections Overcome:**
-                        1.  *Time / Busy on roof* (Handled perfectly with time-validation and a quick micro-pitch).
-                        2.  *Pen & Paper / Manual QuickBooks admin* (Handled perfectly by validating paper reliability, then pivoting to saving admin time).
-                    *   **Vocabulary Assessment:**
-                        *   *Excellent:* Used trade terms (*"driveway invoicing"*, *"QuickBooks sync"*, *"parts used on-site"*).
-                        *   *Areas to avoid:* None detected. The rep successfully avoided enterprise jargon like "cloud SaaS."
-                    
-                    ### ✉️ AI-Generated Follow-Up Email Template
-                    ```text
-                    Subject: Tuesday at 8:00 AM — Quick 10-Min Jobtable Walkthrough
-                    
-                    Hi Mike,
-                    
-                    Great speaking with you briefly while you were on that rooftop today. I'm looking forward to our call this coming Tuesday morning at 8:00 AM.
-                    
-                    As promised, I will keep our call to exactly 10 minutes. I will show you how other trade owners are using Jobtable to invoice in the driveway, sync instantly with QuickBooks, and eliminate night-time paperwork.
-                    
-                    I have sent the calendar invitation to your email. Talk to you on Tuesday!
-                    
-                    Best regards,
-                    
-                    Ikechukwu Onuekwusi
-                    Jobtable SDR Team
-                    ```
+                *   **[0:00 - 0:10] THE HOOK (Direct & Visual):**
+                    *   *Visual:* Hold the **{vid_prop}** directly in front of the camera, then pull it back to show your face.
+                    *   *Audio:* *"Hey [Contractor Name], I’m holding a simple {vid_prop} here in my hand. It costs about $4, but when your field techs forget to charge for just three of these on their paper tickets, you lose $500 in profits every single month."*
+                *   **[0:10 - 0:35] THE AGITATION:**
+                    *   *Audio:* *"I’m Ikechukwu, an outbound representative here at Jobtable. Because I have supervised HVAC and plumbing pipeline setups in the field myself, I know how hard it is to get techs to log materials accurately on paper sheets late at night."*
+                *   **[0:35 - 0:50] THE SIMPLE SOLUTION:**
+                    *   *Audio:* *"That’s why trade veterans built Jobtable. It is an extremely simple app. Techs click the exact parts they used on site, and it automatically updates the invoice and syncs with QuickBooks instantly. Your crew will master it in 5 minutes."*
+                *   **[0:50 - 1:00] THE CALL-TO-ACTION:**
+                    *   *Audio:* *"I won't pitch you further over email. Reply to this message, and let's grab just 10 minutes next week Tuesday to see if it makes sense. Have a great day!"*
                     """
-                )
+            )
 
-# ----------------- TAB 4: SCENARIO BUILDER (GATED) -----------------
-with tab_scenario:
-    st.subheader("⚙️ Custom Training Persona Scenario Builder")
+# ----------------- TAB 5: OBJECTION BATTLECARDS (FULLY UNLOCKED) -----------------
+with tab_battlecards:
+    st.subheader("🛡️ Outbound Objection Battlecards")
+    st.write("Browse through master-level B2B outbound frameworks to overcome contractor brush-offs:")
     
-    if st.session_state.user_tier != "Enterprise":
-        st.warning("⚠️ **ENTERPRISE MODULE LOCKED.** Building custom scenario profiles and deploying them team-wide requires **Enterprise Suite Tier**.")
-        render_instant_paywall(
-            target_tier="Enterprise",
-            price_str="$29.00 USD / month (Individual) or $99 / seat / mo (Enterprise)",
-            features_list=[
-                "Full-Featured Sales Pipeline & Lead CRM Stage Tracker",
-                "Advanced AI Call Recording Auditor & Sentiment Analysis Tool",
-                "Deploy custom scenario profiles team-wide (Manager Console)",
-                "Full Developer API access and HubSpot / Salesforce automatic webhooks"
-            ],
-            context_key="scenario_tab_paywall"
+    obj_choice = st.selectbox("Select Objection Type:", ["I'm too busy, call me back / send an email.", "I use pen and paper / Excel and it works fine.", "We already use Jobber / ServiceTitan.", "I'm too small / don't need it."])
+    
+    if obj_choice == "I'm too busy, call me back / send an email.":
+        st.markdown(
+            """
+            ### 🎯 Rebuttal Strategy: Busy Brush-off
+            *   **Buyer Psychology:** Protective reflex to unscheduled phone interruptions. They assume you will waste 30 minutes reading dry slides.
+            *   **Formula:** Acknowledge (A) + De-escalate (D) + Pivot (P) + Micro-Close (MC)
+            *   **SDR Script Rebuttal:** 
+                > *"I completely hear you, Bob. I'm catching you mid-job, so I'll let you get right back to it. Trade owners use Jobtable specifically to get paid 10 days faster. I don't want to pitch you now. Can we grab just 10 minutes next Tuesday morning before your first run, to see if it makes sense?"*
+            """
         )
-    else:
-        col_p1, col_p2 = st.columns(2)
-        with col_p1:
-            st.write("### Build New Buyer Persona")
-            with st.form("add_persona_form"):
-                p_name = st.text_input("Persona Name (e.g. Director of Procurement):")
-                p_diff = st.selectbox("Difficulty:", ["Easy", "Medium", "Hard", "Expert"])
-                p_objs = st.text_input("Core Objections:")
-                p_submit = st.form_submit_button("Deploy Scenario to Team")
-                if p_submit and p_name:
-                    st.session_state.personas.append({"Name": p_name, "Difficulty": p_diff, "Objections": p_objs})
-                    st.success(f"Persona '{p_name}' deployed successfully!")
-                    st.rerun()
-        with col_p2:
-            st.write("### Deployed Team Personas")
-            st.dataframe(pd.DataFrame(st.session_state.personas), use_container_width=True)
-
-# ----------------- TAB 5: DEVELOPER API HUB (GATED) -----------------
-with tab_api:
-    st.subheader("🔌 Developer REST API & Webhooks")
-    
-    if st.session_state.user_tier != "Enterprise":
-        st.warning("⚠️ **ENTERPRISE MODULE LOCKED.** REST APIs, webhook triggers, and third-party CRM syncing requires **Enterprise Suite Tier**.")
-        render_instant_paywall(
-            target_tier="Enterprise",
-            price_str="$29.00 USD / month (Individual) or $99 / seat / mo (Enterprise)",
-            features_list=[
-                "Full-Featured Sales Pipeline & Lead CRM Stage Tracker",
-                "Advanced AI Call Recording Auditor & Sentiment Analysis Tool",
-                "Deploy custom scenario profiles team-wide (Manager Console)",
-                "Full Developer API access and HubSpot / Salesforce automatic webhooks"
-            ],
-            context_key="api_tab_paywall"
+    elif obj_choice == "I use pen and paper / Excel and it works fine.":
+        st.markdown(
+            """
+            ### 🎯 Rebuttal Strategy: Tech-Aversion / Pen & Paper
+            *   **Buyer Psychology:** Fear of complexity and software setup. They assume software takes weeks to configure, and older techs will refuse to use it.
+            *   **Formula:** Validate paper reliability + Uncover Cost of Whiteboard/Paper + Introduce simple contrast
+            *   **SDR Script Rebuttal:**
+                > *"Pen and paper is 100% reliable, you are right. But paper doesn't talk to QuickBooks, and it's easy for technicians to forget to charge for extra parts. Jobtable is built to be as simple as sending a text message. Technicians do it in 20 seconds, and you get paid instantly. Let me show you a 5-minute comparison."*
+            """
+        )
+    elif obj_choice == "We already use Jobber / ServiceTitan.":
+        st.markdown(
+            """
+            ### 🎯 Rebuttal Strategy: Competitor Lock-in
+            *   **Buyer Psychology:** Comfortable with current tools and dreads the friction of migrating data.
+            *   **Formula:** Respect current competitor + Introduce key performance comparison + Low friction comparative overview
+            *   **SDR Script Rebuttal:**
+                > *"Jobber is a solid system, absolutely. But what many contractors find is that they use about 15% of the features but pay for 100% of the price. Jobtable is focused purely on simplicity. Your team can master it in 5 minutes with zero training, and it's half the price. Can I show you a 10-minute comparison next week?"*
+                """
         )
     else:
         st.markdown(
             """
-            ### REST API Documentation
-            Authenticate all requests by including your corporate Bearer Token in your HTTP headers:
-            `Authorization: Bearer sf_live_82938a9283f982a839a842b10a`
-            
-            #### 1. POST /v1/leads (Inject Lead from HubSpot/Salesforce)
-            ```json
-            {
-              "company_name": "Miller & Sons Plumbing",
-              "contact_name": "Bob Miller",
-              "estimated_value": 4500,
-              "assigned_rep_email": "ikechukwuonuekwusi@gmail.com"
-            }
-            ```
-            """
-        )
-        st.success("Webhooks online. Active sync with HubSpot Hub ID: #829103 and Salesforce CRM Instance NA-92.")
+            ### 🎯 Rebuttal Strategy: Small / Don't Need It
+            *   **Buyer Psychology:** Perceives software as an enterprise-only cost, not a small-business administrative lifesaver.
+            *   **Formula:** Reposition tool as virtual admin + Focus on growth scaling
+            *   **SDR Script Rebuttal:**
+                > *"We actually built Jobtable specifically for 1-5 person shops. When you're small, you don't have a full-time office admin, so you're doing double-duty as a tech and an accountant. Jobtable acts as your virtual admin, automating text reminders and dispatching. It helps you look like a 50-person company and win more high-paying commercial jobs."*
+                """
+            )
 
 # Footer
 st.markdown("---")
