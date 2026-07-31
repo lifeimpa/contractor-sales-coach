@@ -8,7 +8,7 @@ import os
 
 # Set up page configurations
 st.set_page_config(
-    page_title="SalesFlow AI - Intelligent Sales Coach & Enablement Hub",
+    page_title="SalesFlow Agent - Intelligent Sales Enablement Coach",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -17,12 +17,13 @@ st.set_page_config(
 # ----------------- ADVANCED CUSTOM UI STYLING (CSS Injection) -----------------
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;600;700;800&family=Material+Icons+Outlined&display=swap');
     
     /* Global Base Reset */
     .main { 
         background-color: #f8fafc; 
         font-family: 'Inter', sans-serif;
+        color: #0f172a;
     }
     
     /* Clean Typography styling */
@@ -49,7 +50,7 @@ st.markdown("""
         background: #ffffff;
         border-radius: 12px;
         padding: 20px;
-        box-shadow: 0 4px 20 rgba(15, 23, 42, 0.04);
+        box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
         border: 1px solid #f1f5f9;
         border-left: 6px solid #1e40af;
         transition: all 0.3s ease;
@@ -87,6 +88,16 @@ st.markdown("""
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
+    .badge-free {
+        background: #10b981;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -98,25 +109,9 @@ DEFAULT_PROFILES = {
         "industry": "",
         "persona": "",
         "mood": ""
-    },
-    "💻 Cybersecurity SaaS (CISO)": {
-        "industry": "Enterprise Cybersecurity threat-detection platform",
-        "persona": "Marcus Vance, Chief Information Security Officer (CISO)",
-        "mood": "Super busy, dealing with an active server patch, highly skeptical"
-    },
-    "🔨 Contractor Dispatch Software (Jobtable)": {
-        "industry": "HVAC / Plumbing Dispatch & Invoicing Software (Jobtable)",
-        "persona": "Bob Miller, Miller & Sons Plumbing (Owner)",
-        "mood": "Super Stressed, working under a sink, tech-skeptical"
-    },
-    "🏠 Real Estate Outbound": {
-        "industry": "Residential Property Listing Services",
-        "persona": "Dave Kowalski, Private Homeowner (FSBO seller)",
-        "mood": "Defensive, annoyed by agents, wants to sell without commission"
     }
 }
 
-# Load profiles from file or create defaults
 if not os.path.exists(PROFILES_FILE):
     with open(PROFILES_FILE, "w") as f:
         json.dump(DEFAULT_PROFILES, f, indent=4)
@@ -156,7 +151,7 @@ if "active_api_key" not in st.session_state:
 if "active_api_provider" not in st.session_state:
     st.session_state.active_api_provider = "Practice Simulator (Offline)"
 if "active_model_name" not in st.session_state:
-    st.session_state.active_model_name = "gemini-1.5-flash"
+    st.session_state.active_model_name = "models/gemini-1.5-flash-latest"
 
 # 2. Active Chat Logs
 if "messages" not in st.session_state:
@@ -178,112 +173,110 @@ if "score" not in st.session_state:
 # 5. Quiz Performance History Log
 if "quiz_history" not in st.session_state:
     st.session_state.quiz_history = []
+# 6. Academy Interactive Generated Course State
+if "academy_course_content" not in st.session_state:
+    st.session_state.academy_course_content = ""
+if "academy_course_industry" not in st.session_state:
+    st.session_state.academy_course_industry = ""
+
+# Load existing user profiles
+saved_profiles = load_user_profiles()
 
 # ----------------- SIDEBAR: AI CO-PILOT CONFIGURATION -----------------
 with st.sidebar:
     st.markdown("<h3 style='color: white; margin-bottom: 0px;'>SalesFlow AI</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #64748b; font-size: 13px; margin-top: 0px;'>Intelligent Sales Coach</p>", unsafe_allow_html=True)
-    st.markdown("<span class='badge-premium'>🔒 UNLOCKED EDITION</span>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #64748b; font-size: 13px; margin-top: 0px;'>Enterprise Sales Coach</p>", unsafe_allow_html=True)
+    st.markdown("<span class='badge-free'>🔓 100% FREE & OPEN ACCESS</span>", unsafe_allow_html=True)
     st.write("---")
     
     st.subheader("🔌 Connection Center")
-    api_provider = st.selectbox(
-        "Default API Brain:", 
-        ["Practice Simulator (Offline)", "Google Gemini API", "DeepSeek API"]
-    )
+    user_key_input = st.text_input("Enter your API Key:", type="password", help="Paste your Google Gemini or DeepSeek API key here.")
     
-    api_key_input = ""
-    if api_provider != "Practice Simulator (Offline)":
-        # Check if we already have a key saved in session state for this provider
-        default_val = st.session_state.active_api_key if api_provider == st.session_state.active_api_provider else ""
-        api_key_input = st.text_input("Enter API Secret Key:", value=default_val, type="password", help="Input your authorization key from your selected AI platform")
-        
-        # Real-time Connect Button (With self-healing, multi-model fallback lists!)
-        if st.button("🔌 Connect API", use_container_width=True, type="primary"):
-            if not api_key_input:
-                st.error("Please enter an API Key first.")
-            else:
-                with st.spinner("Authenticating secure API handshakes..."):
-                    try:
-                        if api_provider == "Google Gemini API":
-                            import google.generativeai as genai
-                            genai.configure(api_key=api_key_input)
-                            
-                            # Self-healing fallback list for Google AI Studio API aliases!
-                            fallback_models = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"]
-                            working_model = None
-                            last_err = ""
-                            
-                            for m_name in fallback_models:
-                                try:
-                                    model = genai.GenerativeModel(m_name)
-                                    test_response = model.generate_content("hello")
-                                    working_model = m_name
-                                    break
-                                except Exception as e_model:
-                                    last_err = str(e_model)
-                                    continue
-                            
-                            if working_model:
-                                st.session_state.api_connected = True
-                                st.session_state.api_connection_error = ""
-                                st.session_state.active_api_key = api_key_input
-                                st.session_state.active_api_provider = api_provider
-                                st.session_state.active_model_name = working_model
-                            else:
-                                st.session_state.api_connected = False
-                                st.session_state.api_connection_error = f"404 Not Found. Google API rejected model aliases: {last_err}"
-                                
-                        elif api_provider == "DeepSeek API":
-                            headers = {
-                                "Content-Type": "application/json",
-                                "Authorization": f"Bearer {api_key_input}"
-                            }
-                            data = {
-                                "model": "deepseek-chat",
-                                "messages": [{"role": "user", "content": "hello"}],
-                                "max_tokens": 5
-                            }
-                            response = requests.post("https://api.deepseek.com/v1/chat/completions", json=data, headers=headers, timeout=5)
-                            if response.status_code == 200:
-                                st.session_state.api_connected = True
-                                st.session_state.api_connection_error = ""
-                                st.session_state.active_api_key = api_key_input
-                                st.session_state.active_api_provider = api_provider
-                            else:
-                                st.session_state.api_connected = False
-                                st.session_state.api_connection_error = f"API returned status {response.status_code}: {response.text}"
-                    except Exception as e:
-                        st.session_state.api_connected = False
-                        st.session_state.api_connection_error = str(e)
-                        
-        # Connection status dashboard
-        if st.session_state.api_connected and api_provider == st.session_state.active_api_provider:
-            st.success(f"🟢 Connected! Real-time mode active (Model: {st.session_state.get('active_model_name', 'gemini-1.5-flash-latest')}).")
+    # Real-time Connect Button (Auto-detection of provider based on prefix)
+    if st.button("🔌 Connect API", use_container_width=True, type="primary"):
+        if not user_key_input:
+            st.error("Please enter an API Key first.")
+            st.session_state.api_connected = False
+            st.session_state.active_api_provider = "Practice Simulator (Offline)"
         else:
-            if st.session_state.api_connection_error:
-                st.error(f"🔴 Connection Failed: {st.session_state.api_connection_error[:120]}...")
-            else:
-                st.warning("🔴 Disconnected. Click 'Connect API' to activate.")
-                
-        # API guides expander
-        with st.expander("ℹ️ How to get your keys"):
-            st.markdown(
-                """
-                **For Google Gemini:**
-                1. Go to <a href='https://aistudio.google.com/' target='_blank'>Google AI Studio</a>.
-                2. Click **"Get API Key"** -> **"Create API Key in new project"**.
-                
-                **For DeepSeek:**
-                1. Go to <a href='https://platform.deepseek.com/' target='_blank'>DeepSeek Platform</a>.
-                2. Navigate to **"API Keys"** -> **"Create API Key"**.
-                """,
-                unsafe_allow_html=True
-            )
+            with st.spinner("Detecting provider and verifying secure link..."):
+                if user_key_input.startswith("AIzaSy"):
+                    detected_provider = "Google Gemini API"
+                else:
+                    detected_provider = "DeepSeek API"
+                    
+                try:
+                    if detected_provider == "Google Gemini API":
+                        import google.generativeai as genai
+                        genai.configure(api_key=user_key_input)
+                        
+                        try:
+                            models = [m.name for m in genai.list_models() if "generateContent" in m.supported_generation_methods]
+                            working_model = None
+                            for m in models:
+                                if "gemini-1.5-flash" in m or "gemini-2.0-flash" in m or "gemini-flash" in m:
+                                    working_model = m
+                                    break
+                            if not working_model:
+                                working_model = models[0] if models else "models/gemini-1.5-flash-latest"
+                        except Exception:
+                            working_model = "models/gemini-1.5-flash-latest"
+                            
+                        model = genai.GenerativeModel(working_model)
+                        test_response = model.generate_content("hello")
+                        
+                        st.session_state.api_connected = True
+                        st.session_state.api_connection_error = ""
+                        st.session_state.active_api_key = user_key_input
+                        st.session_state.active_api_provider = detected_provider
+                        st.session_state.active_model_name = working_model
+                        
+                    elif detected_provider == "DeepSeek API":
+                        headers = {
+                            "Content-Type": "application/json",
+                            "Authorization": f"Bearer {user_key_input}"
+                        }
+                        data = {
+                            "model": "deepseek-chat",
+                            "messages": [{"role": "user", "content": "hello"}],
+                            "max_tokens": 5
+                        }
+                        response = requests.post("https://api.deepseek.com/v1/chat/completions", json=data, headers=headers, timeout=5)
+                        if response.status_code == 200:
+                            st.session_state.api_connected = True
+                            st.session_state.api_connection_error = ""
+                            st.session_state.active_api_key = user_key_input
+                            st.session_state.active_api_provider = detected_provider
+                            st.session_state.active_model_name = "deepseek-chat"
+                        else:
+                            st.session_state.api_connected = False
+                            st.session_state.api_connection_error = f"DeepSeek returned status {response.status_code}"
+                            
+                except Exception as e:
+                    st.session_state.api_connected = False
+                    st.session_state.api_connection_error = str(e)
+                    
+    # Real-time connection feedback HUD
+    if st.session_state.api_connected:
+        st.success(f"🟢 Connected to {st.session_state.active_api_provider}! Live: {st.session_state.active_model_name}.")
     else:
-        st.session_state.api_connected = False
-        st.info("💡 **Local Practice Mode active.** Offline simulator is active. No keys required.")
-        
+        if st.session_state.api_connection_error:
+            st.error(f"🔴 Connection Failed: {st.session_state.api_connection_error}")
+        else:
+            st.warning("🔴 Disconnected. Paste key and click 'Connect API' to activate.")
+            
+    with st.expander("ℹ️ How to get your keys"):
+        st.markdown(
+            """
+            **Google Gemini:**
+            Log into <a href='https://aistudio.google.com/' target='_blank'>Google AI Studio</a>. Click **\"Get API Key\"** -> **\"Create API Key in new project\"** (100% Free).
+            
+            **DeepSeek:**
+            Log into <a href='https://platform.deepseek.com/' target='_blank'>DeepSeek Platform</a>. Go to **\"API Keys\"** -> **\"Create API Key\"** (Very cost-effective).
+            """,
+            unsafe_allow_html=True
+        )
+    
     st.write("---")
     
     # Active Session Analytics
@@ -303,7 +296,7 @@ with st.sidebar:
 st.markdown(
     """
     <div style='background-color: #ffffff; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 25px; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.02);'>
-        <h1 style='margin: 0px;'>⚡ SalesFlow AI - Universal Sales Enablement Coach</h1>
+        <h1 style='margin: 0px;'>⚡ SalesFlow Agent - Intelligent Sales Enablement Coach</h1>
         <p style='color: #64748b; font-size: 16px; margin-top: 5px; margin-bottom: 0px;'>The all-in-one AI sales assistant. Practice cold calling, handle raw objections, plan face-to-face closes, compose emails, and write high-converting copy in any B2B/B2C sector.</p>
     </div>
     """,
@@ -323,9 +316,6 @@ active_module = st.radio(
 )
 
 st.write("---")
-
-# Load existing user profiles
-saved_profiles = load_user_profiles()
 
 # ==================== MODULE A: OUTBOUND COLD-CALL ASSISTANT AGENT ====================
 if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Simulator & Prep)":
@@ -348,27 +338,24 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
         col_p_load, col_wiz1 = st.columns([1, 1])
         
         with col_p_load:
-            # Dropdown to load saved user profiles so they never have to type from scratch!
             loaded_p_name = st.selectbox(
                 "📂 Load My Saved Profiles:",
                 list(saved_profiles.keys()),
                 help="Select any profile you previously configured and saved to populate fields instantly!"
             )
             
-            # Populate based on selection
             if loaded_p_name != "Select a Profile...":
                 st.session_state.setup_industry = saved_profiles[loaded_p_name]["industry"]
                 st.session_state.setup_persona = saved_profiles[loaded_p_name]["persona"]
                 st.session_state.setup_mood = saved_profiles[loaded_p_name]["mood"]
         
         with col_wiz1:
-            # RESTORED NEUTRAL SECTOR DROP-DOWN (No bias, completely universal, plus custom typing option!)
             sector_choice = st.selectbox(
                 "Select Broad Industry Recommendation:",
                 [
                     "Select Industry Recommendation...",
                     "💻 B2B Software & Enterprise SaaS",
-                    "🔨 Construction, Trades & Mechanical Services (Jobtable)",
+                    "🔨 Construction, Trades & Mechanical Services (Jobtable/MEP)",
                     "🏠 Real Estate, Mortgages & Housing",
                     "🏥 Medical, Clinical & Biotech Services",
                     "💼 Professional B2B Services (Logistics, Consulting, HR)",
@@ -381,13 +368,12 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
         suggested_moods = []
         default_product = ""
         
-        # EXTENDED NEUTRAL PROFESSION LISTS
         if sector_choice == "💻 B2B Software & Enterprise SaaS":
             default_product = "Enterprise Cloud Security SaaS"
             suggested_personas = ["Chief Information Security Officer (CISO)", "Chief Financial Officer (CFO)", "VP of Sales Operations", "Director of HR & Benefits", "Chief Technology Officer (CTO)", "VP of Global Procurement", "Custom (Write my own)"]
             suggested_moods = ["Defensive about cold calls, extremely busy, budget locked", "Analytical, protective of company overhead, wants exact ROI", "Skeptical, happy with current competitor, refuses complex setup", "Custom (Write my own)"]
-        elif sector_choice == "🔨 Construction, Trades & Mechanical Services (Jobtable)":
-            default_product = "Jobtable Contractor Dispatch & Invoicing App"
+        elif sector_choice == "🔨 Construction, Trades & Mechanical Services (Jobtable/MEP)":
+            default_product = "Contractor Dispatch & Invoicing App"
             suggested_personas = ["Plumbing Contractor Owner", "Electrical Shop Owner", "HVAC Project Supervisor", "MEP General Contractor", "Roofing Business Owner", "Solar Installer Director", "Professional Commercial Painter", "Custom (Write my own)"]
             suggested_moods = ["Super stressed, working under a sink, hates sales scripts", "Driving between jobs, behind on QuickBooks, paperwork backlog", "On a rooftop, happy with pen and paper whiteboard layouts", "Custom (Write my own)"]
         elif sector_choice == "🏠 Real Estate, Mortgages & Housing":
@@ -411,7 +397,6 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
             suggested_personas = ["Custom (Write my own)"]
             suggested_moods = ["Custom (Write my own)"]
 
-        # Apply suggestions if selected
         if sector_choice != "Select Industry Recommendation..." and sector_choice != "":
             st.session_state.setup_industry = default_product
             if suggested_personas:
@@ -425,7 +410,7 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
         with col_in1:
             ui_industry = st.text_input("My Product / Platform:", value=st.session_state.setup_industry, placeholder="e.g. Invoicing App, HR Software, Real Estate, Paints, Tiles", key="call_prod_inp")
         with col_in2:
-            ui_persona = st.text_input("Target Customer Title / Role:", value=st.session_state.setup_persona, placeholder="e.g. Bob the Plumber, VP of Security, Architect, Builder", key="call_pers_inp")
+            ui_persona = st.text_input("Target Customer Title / Role:", value=st.session_state.setup_persona, placeholder="e.g. Architect, Builder, CISO, Homeowner", key="call_pers_inp")
         with col_in3:
             ui_mood = st.text_input("Buyer's Current Mood / Style:", value=st.session_state.setup_mood, placeholder="e.g. Stressed on site, highly skeptical of quality, defensive", key="call_mood_inp")
 
@@ -434,7 +419,7 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
         st.session_state.setup_persona = ui_persona
         st.session_state.setup_mood = ui_mood
 
-        # 💾 Profile Manager Expander (Add & Delete custom features!)
+        # 💾 Profile Manager Expander
         st.write("")
         with st.expander("💾 Profile Manager (Save, Edit, or Delete Custom Configurations)"):
             col_save1, col_save2 = st.columns([2, 1])
@@ -517,12 +502,12 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
                             end_call = True
 
                         # 1. LIVE GOOGLE GEMINI MODE (Natively powered by st.session_state securely saved keys!)
-                        elif api_provider == "Google Gemini API" and st.session_state.api_connected and st.session_state.active_api_provider == "Google Gemini API":
+                        elif st.session_state.active_api_provider == "Google Gemini API" and st.session_state.api_connected:
                             try:
                                 import google.generativeai as genai
                                 genai.configure(api_key=st.session_state.active_api_key)
                                 model = genai.GenerativeModel(
-                                    model_name=st.session_state.active_model_name, # Natively loaded working verified model!
+                                    model_name=st.session_state.active_model_name,
                                     system_instruction=f"""
                                     You are roleplaying as {ui_persona}, a target customer in the {ui_industry} space.
                                     Your current personality/mood constraint is: {ui_mood}.
@@ -547,7 +532,7 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
                                 st.error(f"Gemini API Error: {str(e)}. Defaulting to Practice Simulator.")
 
                         # 2. LIVE DEEPSEEK AI MODE (Natively powered by st.session_state securely saved keys!)
-                        elif api_provider == "DeepSeek API" and st.session_state.api_connected and st.session_state.active_api_provider == "DeepSeek API":
+                        elif st.session_state.active_api_provider == "DeepSeek API" and st.session_state.api_connected:
                             try:
                                 headers = {
                                     "Content-Type": "application/json",
@@ -956,85 +941,142 @@ elif active_module == "🤝 Module B: General Closing & Outreach Copilot (Face-t
 # ==================== MODULE C: SALES ACADEMY & INDUSTRY ONBOARDING HUB ====================
 elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (ABC Industry Guides & Tests)":
     st.markdown("## 🎓 Sales Academy & Industry Onboarding Hub")
-    st.write("If you have **zero idea** about your target industry, use this master suite to learn any field from scratch (like ABC). Take dynamic tests to analyze your mistakes and catch up to speed.")
+    st.write("This is your intelligent, interactive Sales Enablement Suite. Type any industry below to let the AI build a complete custom step-by-step masterclass course, and take certification exams in real-time.")
     
     sub_tab_academy, sub_tab_test, sub_tab_history = st.tabs([
-        "📖 Industry Onboarding Guides (ABCs)",
+        "🎓 Interactive Onboarding Guides (ABCs)",
         "📝 Test Room (Questions & Answers)",
         "📜 My Quiz Performance History"
     ])
     
-    # Setup values for dynamic learning references (100% generic)
-    academy_industry = st.session_state.setup_industry if st.session_state.setup_industry else "Your Configured Target Market"
-    
-    # 1. INDUSTRY ONBOARDING GUIDES (ABCs)
+    # 1. INTERACTIVE ONBOARDING GUIDES (ABCs)
     with sub_tab_academy:
-        st.subheader(f"📖 Mastering {academy_industry} from Scratch")
-        st.write("We have mapped out different onboarding lessons to speed up your learning process:")
+        st.subheader("🎓 My Intelligent AI Sales Academy")
+        st.write("Let the AI build a complete step-by-step course study for any custom target audience:")
         
-        col_l1, col_l2 = st.columns(2)
+        col_ac1, col_ac2 = st.columns([1, 1])
         
-        # 100% NEUTRAL & UNIVERSAL B2B SALES PLAYBOOK LESSONS
-        with col_l1:
+        with col_ac1:
+            st.write("### 📖 Step 1: Select Topic of Study")
+            
+            # Interactive selections based on saved profiles
+            academy_industry_input = st.text_input(
+                "Target Industry / Field to Study:", 
+                value=st.session_state.setup_industry, 
+                placeholder="e.g. B2B Security Software, Residential Real Estate, Commercial Paints & Tiles"
+            )
+            
+            generate_course = st.button("🎓 Generate Custom A-Z Masterclass", type="primary")
+            
+        with col_ac2:
+            st.write("### 📜 Onboarding Curriculum Builder Status")
+            if not st.session_state.api_connected:
+                st.warning("⚠️ **Practice Mode Active.** Connect your Gemini/DeepSeek API in the Connection Center to trigger unlimited real-time AI course generation. We will load a high-quality general outline below:")
+            else:
+                st.success(f"🟢 **API Brain Ready!** SalesFlow will generate a customized A-Z syllabus for: **{academy_industry_input}**.")
+
+        st.write("---")
+
+        # 2. RUN REAL-TIME AI COURSE GENERATION
+        if generate_course:
+            # Sync industry text
+            st.session_state.academy_course_industry = academy_industry_input
+            
+            with st.spinner(f"AI Onboarding Agent is structuring your step-by-step masterclass for {academy_industry_input}..."):
+                # If connected to live AI, generate dynamically!
+                if st.session_state.api_connected:
+                    try:
+                        ai_course_text = ""
+                        course_prompt = f"""
+                        You are "SalesFlow Academy AI Onboarding Assistant."
+                        Generate a complete, highly structured, comprehensive step-by-step sales masterclass course specifically for the industry: {academy_industry_input}.
+                        
+                        Structure your response exactly into these 5 clear, highly professional phases:
+                        
+                        ## 📖 Phase 1: The Basics (A-Z Foundations)
+                        * Explain how companies in {academy_industry_input} actually operate and make money.
+                        * What is their core business value? Who is on their buying committee?
+                        
+                        ## ⚙️ Phase 2: Intermediate (Daily Operations & Pain Points)
+                        * Detail what their professionals (e.g. engineers, architects, managers, or techs) go through on a daily basis.
+                        * What are their active physical and administrative pain points? Where do they bleed money and time?
+                        
+                        ## 🔬 Phase 3: Advanced (Technical Jargon & Specifications)
+                        * Provide a glossary of critical, highly specific technical terminology and specifications they use daily on-site or in active audits. Define them simply.
+                        
+                        ## 🛡️ Phase 4: The SDR Closing Playbook (Value Triggers)
+                        * Detail exactly what these buyers *want* to hear to win their trust.
+                        * Provide exact word-for-word opening lines, discovery questions, and closing scripts tailored to this field.
+                        
+                        ## 📺 Phase 5: Curated Visual & Practical Resources
+                        * Suggest specific YouTube channels, visual training video topics, and industry blogs that explain this field's operations better so reps can learn visually.
+                        """
+                        
+                        # Google Gemini Connection
+                        if st.session_state.active_api_provider == "Google Gemini API":
+                            import google.generativeai as genai
+                            genai.configure(api_key=st.session_state.active_api_key)
+                            model = genai.GenerativeModel(st.session_state.active_model_name)
+                            response = model.generate_content(course_prompt)
+                            ai_course_text = response.text
+                            
+                        # DeepSeek Connection
+                        elif st.session_state.active_api_provider == "DeepSeek API":
+                            headers = {
+                                "Content-Type": "application/json",
+                                "Authorization": f"Bearer {st.session_state.active_api_key}"
+                            }
+                            data = {
+                                "model": "deepseek-chat",
+                                "messages": [{"role": "user", "content": course_prompt}],
+                                "temperature": 0.7
+                            }
+                            response = requests.post("https://api.deepseek.com/v1/chat/completions", json=data, headers=headers, timeout=20)
+                            if response.status_code == 200:
+                                ai_course_text = response.json()["choices"][0]["message"]["content"]
+                                
+                        st.session_state.academy_course_content = ai_course_text
+                        
+                    except Exception as e:
+                        st.error(f"Failed to generate course via API: {str(e)}. Defaulting to high-quality template.")
+                        st.session_state.academy_course_content = ""
+                else:
+                    # Simulated offline fallback templates
+                    time.sleep(1.2)
+                    st.session_state.academy_course_content = ""
+
+        # Render Course Content (Fulfills their request for interactive, step-by-step lessons!)
+        if st.session_state.academy_course_content:
+            st.markdown(st.session_state.academy_course_content)
+        else:
+            # High-fidelity universal B2B study guides
             st.markdown(
                 f"""
-                ### 🎨 Section 1: The B2B Onboarding ABCs (Universal Guide)
+                ### 📖 Phase 1: B2B Onboarding ABCs (Universal Guide)
                 *   **How B2B Businesses Make Money:** B2B organizations generate revenue by solving distinct, recurring problems for their target clients. They live and die by client retention, operational velocity, and margin protection.
                 *   **Understanding the Buying Committee:** In any B2B sale, you are rarely dealing with just one person. You have **End Users** (who care about daily simplicity), **Project Managers** (who care about delivery timelines), and **C-Suite/CFOs** (who care strictly about cost-savings and return on investment).
                 *   **The Daily Operational Grind:** Executives and site managers are constantly bombarded by operations issues, crew constraints, and strict deadlines. Your cold outreach must respect this busy operational clock.
                 
-                ### 🛠️ Section 2: Key Business Terminology
+                ### ⚙️ Phase 2: Key Business Terminology
                 *   **Material Takeoff / Audit:** Calculating the exact resource specifications required before launching a major commercial contract.
                 *   **Gross Margin %:** The financial difference between product acquisition cost and target resale value.
                 *   **Operational Bottlenecks:** Manual, repetitive clerical tasks (spreadsheets, paper tracking) that slow down billing and eat active profit margins.
-                """
-            )
-        with col_l2:
-            st.markdown(
-                f"""
-                ### ⚠️ Section 3: Core Administrative Bottlenecks
+                
+                ### 🔬 Phase 3: Core Administrative Bottlenecks
                 1.  **Revenue Leakage:** Employees or crews forgetting to log minor costs, parts used on site, or billable hours, leading to thousands in unlogged losses.
-                2.  **Scheduling & Dispatch Friction:** whiteboards and manual text coordination leading to late arrivals, double-bookings, and client friction.
+                2.  **Scheduling & Dispatch Friction:** Whiteboards and manual text coordination leading to late arrivals, double-bookings, and client friction.
                 3.  **Late Accounts Receivable:** Waiting weeks for customers to manually process invoices, creating major cashflow constraints.
                 
-                ### ⭐ Section 4: \"The Universal Fab Five\" Sales Rules
+                ### 🛡️ Phase 4: \"The Universal Fab Five\" Sales Rules
                 *   **Rule 1:** *Speak to their reputation.* Buyers care about their reviews and client portfolios. Frame your product as their ultimate reputation-builder.
                 *   **Rule 2:** *Target administrative pain early.* Speak directly to manual, back-office double-entry late at night.
                 *   **Rule 3:** *Respect their timing.* Acknowledge they are busy running operations immediately upon starting a call.
                 *   **Rule 4:** *Keep your language plain.* Ditch the heavy software jargon. Describe your product simply, like describing a truck.
                 *   **Rule 5:** *Keep the call-to-action low risk.* Propose a short, 10-minute comparison, never a heavy 1-hour slides presentation.
-                """
-            )
-            
-        # ==================== DYNAMIC VIDEO & BLOG MEDIA LINK HUB ====================
-        st.write("---")
-        st.write("### 📺 Visual & Practical Study Hub (Media Resources)")
-        st.write("People learn better visually! Click on these high-quality curated videos and blog posts to understand exactly what your prospect goes through on a daily basis:")
-        
-        # Universal dynamic visual media suggestions
-        col_media1, col_media2 = st.columns(2)
-        with col_media1:
-            st.markdown(
-                """
-                **🎥 Highly Curated Video Masterclasses:**
-                *   **[YouTube Masterclass] B2B Sales Prospecting & Empathy Hooks**  
-                    *Visual lessons on B2B active listening, consultative openings, and handling high-friction enterprise brush-offs.*  
-                    [👉 Watch Sales Coach Tutorial](https://www.youtube.com/)
-                *   **[YouTube Masterclass] Y-Combinator School: Understanding Product Market Fit**  
-                    *Learn how founders and sales leaders audit their client niches and find their #1 target pains.*  
-                    [👉 Watch Startup School Lessons](https://www.youtube.com/@ycombinator)
-                """
-            )
-        with col_media2:
-            st.markdown(
-                """
-                **📚 Deep-Dive Articles & Blogs:**
-                *   **[Industry Blog] Harvard Business Review (HBR): Mastering Consultative B2B Selling**  
-                    *How elite modern sales professionals use SPIN and Challenger frameworks to drive deal velocity.*  
-                    [👉 Read Sales Articles on HBR](https://hbr.org/)
-                *   **[Industry Blog] HubSpot Sales Academy: Understanding the Modern B2B Customer Journey**  
-                    *How to conduct thorough research, map accounts, and bypass gatekeepers to speak directly to the C-suite.*  
-                    [👉 Read B2B Sales Blog](https://blog.hubspot.com/sales)
+                
+                ### 📺 Phase 5: Curated Visual & Practical Resources
+                *   **[YouTube Masterclass] B2B Sales Prospecting & Empathy Hooks** -> [👉 Watch Sales Coach Tutorial](https://www.youtube.com/)
+                *   **[YouTube Masterclass] Y-Combinator School: Product Market Fit** -> [👉 Watch Startup School Lessons](https://www.youtube.com/@ycombinator)
                 """
             )
 
