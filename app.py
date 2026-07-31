@@ -14,78 +14,262 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ----------------- ADVANCED CUSTOM UI STYLING (CSS Injection) -----------------
+# ----------------- DESIGN SYSTEM & PREMIUM CSS THEME (Stripe & Linear Inspired) -----------------
 st.markdown("""
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Material+Icons+Outlined&display=swap" rel="stylesheet">
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;600;700;800&display=swap');
-    
-    /* Global Base Reset */
-    .main { 
-        background-color: #f8fafc; 
-        font-family: 'Inter', sans-serif;
+    /* Reset & Typography */
+    html, body, [data-testid="stAppViewContainer"] {
+        background-color: #F6F8FB;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: #111827;
+        -webkit-font-smoothing: antialiased;
     }
     
-    /* Clean Typography styling */
-    h1 { 
-        color: #0f172a; 
-        font-family: 'Inter', sans-serif; 
-        font-weight: 800; 
-        letter-spacing: -0.02em;
+    /* Hide Default Streamlit Elements */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stDeployButton {display:none;}
+    [data-testid="stHeader"] {background: rgba(0,0,0,0); border-bottom: none;}
+    
+    /* Sidebar Overrides (Linear style) */
+    [data-testid="stSidebar"] {
+        background-color: #0B0F19 !important;
+        border-right: 1px solid #1E293B !important;
+        padding-top: 20px;
     }
-    h2 { 
-        color: #1e293b; 
-        font-family: 'Inter', sans-serif; 
-        font-weight: 700;
-        letter-spacing: -0.01em;
+    [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] p, [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
+        color: #F1F5F9 !important;
     }
-    h3 { 
-        color: #334155; 
-        font-family: 'Inter', sans-serif; 
-        font-weight: 600;
+    [data-testid="stSidebar"] .stButton>button {
+        background: #1E293B !important;
+        color: #F1F5F9 !important;
+        border: 1px solid #334155 !important;
+        border-radius: 6px !important;
+        font-size: 13px !important;
+    }
+    [data-testid="stSidebar"] .stButton>button:hover {
+        background: #2563EB !important;
+        color: white !important;
+        border-color: #2563EB !important;
     }
     
-    /* Premium Metric Card Container */
-    .metric-card {
-        background: #ffffff;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
-        border: 1px solid #f1f5f9;
-        border-left: 6px solid #1e40af;
-        transition: all 0.3s ease;
+    /* Layout Cards & Containers */
+    .saas-card {
+        background: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.01);
+        margin-bottom: 24px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .metric-card:hover {
+    .saas-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+        box-shadow: 0 12px 20px -8px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.01);
+        border-color: #D1D5DB;
+    }
+    .saas-card-dark {
+        background: #0B0F19;
+        border: 1px solid #1E293B;
+        border-radius: 16px;
+        padding: 24px;
+        color: #F1F5F9;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+        margin-bottom: 24px;
     }
     
-    /* Custom button states */
-    .stButton>button {
-        background: #1e40af;
-        color: white;
-        font-weight: 600;
-        border-radius: 8px;
-        padding: 10px 20px;
-        border: none;
-        box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
-        transition: all 0.2s ease;
-    }
-    .stButton>button:hover {
-        background: #1d4ed8;
-        transform: translateY(-1px);
-        box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.3);
-    }
-    
-    /* Custom Badges */
-    .badge-premium {
-        background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
-        color: white;
-        padding: 6px 12px;
+    /* Premium Hero Section */
+    .hero-container {
+        background: linear-gradient(135deg, #0B0F19 0%, #111827 100%);
+        border: 1px solid #1E293B;
         border-radius: 20px;
-        font-size: 11px;
+        padding: 40px;
+        margin-bottom: 32px;
+        position: relative;
+        overflow: hidden;
+        color: white;
+    }
+    .hero-container::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(37,99,235,0.15) 0%, rgba(0,0,0,0) 70%);
+        pointer-events: none;
+    }
+    .hero-title {
+        font-size: 34px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        margin-bottom: 8px;
+        background: linear-gradient(to right, #FFFFFF, #94A3B8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .hero-tagline {
+        font-size: 16px;
+        color: #94A3B8;
+        font-weight: 400;
+        margin-bottom: 24px;
+    }
+    
+    /* Mini KPI Cards inside Hero */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-top: 16px;
+    }
+    .kpi-card {
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        backdrop-filter: blur(10px);
+    }
+    .kpi-value {
+        font-size: 20px;
         font-weight: 700;
+        color: #3B82F6;
+        margin-bottom: 4px;
+    }
+    .kpi-label {
+        font-size: 12px;
+        color: #94A3B8;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+    }
+    
+    /* Segmented Navigation (Tabs) */
+    .nav-pills {
+        display: inline-flex;
+        background: #E2E8F0;
+        padding: 4px;
+        border-radius: 10px;
+        margin-bottom: 24px;
+    }
+    .nav-pill-active {
+        background: white;
+        color: #0F172A;
+        font-weight: 600;
+        padding: 8px 16px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    /* Buttons Customization */
+    .stButton>button {
+        background: linear-gradient(180deg, #2563EB 0%, #1D4ED8 100%) !important;
+        color: white !important;
+        border-radius: 8px !important;
+        border: 1px solid #1D4ED8 !important;
+        padding: 10px 20px !important;
+        font-weight: 600 !important;
+        font-size: 14px !important;
+        transition: all 0.2s ease !important;
+        box-shadow: 0 2px 4px rgba(37,99,235,0.15) !important;
+    }
+    .stButton>button:hover {
+        background: linear-gradient(180deg, #1D4ED8 0%, #1E40AF 100%) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(37,99,235,0.3) !important;
+    }
+    .stButton>button:active {
+        transform: translateY(1px) !important;
+    }
+    
+    /* Secondary/Outline Button styling */
+    .secondary-btn>div>.stButton>button {
+        background: white !important;
+        color: #374151 !important;
+        border: 1px solid #D1D5DB !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+    }
+    .secondary-btn>div>.stButton>button:hover {
+        background: #F9FAFB !important;
+        color: #111827 !important;
+        border-color: #9CA3AF !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
+    }
+    
+    /* Chat Conversation Bubbles (ChatGPT Inspired) */
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .chat-bubble-user {
+        background-color: #F1F5F9;
+        border-radius: 16px 16px 4px 16px;
+        padding: 16px 20px;
+        max-width: 80%;
+        align-self: flex-end;
+        color: #0F172A;
+        font-size: 15px;
+        line-height: 1.5;
+        border: 1px solid #E2E8F0;
+    }
+    .chat-bubble-ai {
+        background-color: #0F172A;
+        border-radius: 16px 16px 16px 4px;
+        padding: 16px 20px;
+        max-width: 80%;
+        align-self: flex-start;
+        color: #F8FAFC;
+        font-size: 15px;
+        line-height: 1.5;
+        border: 1px solid #1E293B;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+    }
+    .chat-meta {
+        font-size: 11px;
+        color: #64748B;
+        margin-top: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .chat-meta-ai {
+        font-size: 11px;
+        color: #94A3B8;
+        margin-top: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .chat-badge-coach {
+        background: #2563EB;
+        color: white;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        font-size: 9px;
+    }
+    
+    /* Material Icon Styling Wrapper */
+    .icon {
+        font-family: 'Material Icons Outlined';
+        font-weight: normal;
+        font-style: normal;
+        font-size: 24px;
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        display: inline-block;
+        white-space: nowrap;
+        word-wrap: normal;
+        direction: ltr;
+        -webkit-font-smoothing: antialiased;
+        vertical-align: middle;
+        margin-right: 8px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -155,19 +339,21 @@ if "active_api_key" not in st.session_state:
     st.session_state.active_api_key = ""
 if "active_api_provider" not in st.session_state:
     st.session_state.active_api_provider = "Practice Simulator (Offline)"
+if "active_model_name" not in st.session_state:
+    st.session_state.active_model_name = "gemini-1.5-flash-latest"
 
 # 2. Active Chat Logs
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "is_call_active" not in st.session_state:
     st.session_state.is_call_active = False
-# 3. Dynamic Wizard Settings
-if "setup_industry" not in st.session_state:
-    st.session_state.setup_industry = ""
-if "setup_persona" not in st.session_state:
-    st.session_state.setup_persona = ""
-if "setup_mood" not in st.session_state:
-    st.session_state.setup_mood = ""
+# 3. Dynamic Wizard Onboarding states
+if "wizard_industry" not in st.session_state:
+    st.session_state.wizard_industry = ""
+if "wizard_persona" not in st.session_state:
+    st.session_state.wizard_persona = ""
+if "wizard_mood" not in st.session_state:
+    st.session_state.wizard_mood = ""
 # 4. Analytics
 if "objections_handled" not in st.session_state:
     st.session_state.objections_handled = 0
@@ -177,42 +363,71 @@ if "score" not in st.session_state:
 if "quiz_history" not in st.session_state:
     st.session_state.quiz_history = []
 
-# ----------------- SIDEBAR: AI CO-PILOT CONFIGURATION -----------------
+# Load existing user profiles
+saved_profiles = load_user_profiles()
+
+# ----------------- SIDEBAR: LINEAR-STYLE WORKSPACE NAVIGATION -----------------
 with st.sidebar:
-    st.markdown("<h3 style='color: white; margin-bottom: 0px;'>SalesFlow AI</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #64748b; font-size: 13px; margin-top: 0px;'>Enterprise Sales Coach</p>", unsafe_allow_html=True)
-    st.markdown("<span class='badge-premium'>🔒 UNLOCKED EDITION</span>", unsafe_allow_html=True)
+    # App Branding
+    st.markdown("""
+    <div style='display: flex; align-items: center; margin-bottom: 24px; padding-left: 8px;'>
+        <div style='background: #2563EB; color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; margin-right: 12px; box-shadow: 0 4px 10px rgba(37,99,235,0.4);'>SF</div>
+        <div>
+            <h3 style='margin: 0; color: white !important; font-size: 16px; font-weight: 700;'>SalesFlow AI</h3>
+            <p style='margin: 0; color: #64748B; font-size: 11px;'>Intelligent Sales Coach</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.write("---")
     
-    st.subheader("🔌 Connection Center")
+    # Active Connection Panel inside Sidebar
+    st.markdown("<p style='font-size: 12px; color: #64748B; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding-left: 8px; margin-bottom: 12px;'>🔌 Connection Settings</p>", unsafe_allow_html=True)
+    
     api_provider = st.selectbox(
-        "Default API Brain:", 
+        "Default AI Engine", 
         ["Practice Simulator (Offline)", "Google Gemini API", "DeepSeek API"]
     )
     
     api_key_input = ""
     if api_provider != "Practice Simulator (Offline)":
-        # Check if we already have a key saved in session state for this provider
         default_val = st.session_state.active_api_key if api_provider == st.session_state.active_api_provider else ""
-        api_key_input = st.text_input("Enter API Secret Key:", value=default_val, type="password", help="Input your authorization key from your selected AI platform")
+        api_key_input = st.text_input("API Access Key", value=default_val, type="password", help="Input your authorization key from your selected AI platform")
         
-        # Real-time Connect Button
-        if st.button("🔌 Connect API", use_container_width=True, type="primary"):
+        # Connect Button (Linear Style Sidebar spacing)
+        if st.button("🔌 Establish Secure Link", use_container_width=True):
             if not api_key_input:
                 st.error("Please enter an API Key first.")
             else:
-                with st.spinner("Authenticating secure API handshakes..."):
+                with st.spinner("Handshaking..."):
                     try:
                         if api_provider == "Google Gemini API":
                             import google.generativeai as genai
                             genai.configure(api_key=api_key_input)
-                            model = genai.GenerativeModel("gemini-1.5-flash")
-                            # Trigger light test ping
-                            test_response = model.generate_content("hello")
-                            st.session_state.api_connected = True
-                            st.session_state.api_connection_error = ""
-                            st.session_state.active_api_key = api_key_input
-                            st.session_state.active_api_provider = api_provider
+                            fallback_models = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"]
+                            working_model = None
+                            last_err = ""
+                            
+                            for m_name in fallback_models:
+                                try:
+                                    model = genai.GenerativeModel(m_name)
+                                    test_response = model.generate_content("hello")
+                                    working_model = m_name
+                                    break
+                                except Exception as e_model:
+                                    last_err = str(e_model)
+                                    continue
+                            
+                            if working_model:
+                                st.session_state.api_connected = True
+                                st.session_state.api_connection_error = ""
+                                st.session_state.active_api_key = api_key_input
+                                st.session_state.active_api_provider = api_provider
+                                st.session_state.active_model_name = working_model
+                            else:
+                                st.session_state.api_connected = False
+                                st.session_state.api_connection_error = f"Model rejected: {last_err}"
+                                
                         elif api_provider == "DeepSeek API":
                             headers = {
                                 "Content-Type": "application/json",
@@ -231,68 +446,88 @@ with st.sidebar:
                                 st.session_state.active_api_provider = api_provider
                             else:
                                 st.session_state.api_connected = False
-                                st.session_state.api_connection_error = f"API returned status {response.status_code}: {response.text}"
+                                st.session_state.api_connection_error = f"DeepSeek rejected key: status {response.status_code}"
                     except Exception as e:
                         st.session_state.api_connected = False
                         st.session_state.api_connection_error = str(e)
                         
-        # Connection status dashboard
+        # Connection status feedback (minimal HUD badge)
         if st.session_state.api_connected and api_provider == st.session_state.active_api_provider:
-            st.success(f"🟢 Connected to {api_provider}! Real-time mode active.")
+            st.markdown(f"<div style='background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 12px; color: #10B981; font-weight: 500;'>🟢 Connection Verified<br/><span style='color: #64748B; font-size: 10px;'>Model: {st.session_state.active_model_name}</span></div>", unsafe_allow_html=True)
         else:
             if st.session_state.api_connection_error:
-                st.error(f"🔴 Connection Failed: {st.session_state.api_connection_error[:100]}...")
+                st.markdown(f"<div style='background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 12px; color: #EF4444;'>🔴 Connection Failed:<br/><span style='font-size: 10px; color: #94A3B8;'>{st.session_state.api_connection_error[:50]}...</span></div>", unsafe_allow_html=True)
             else:
-                st.warning("🔴 Disconnected. Click 'Connect API' to activate.")
+                st.markdown("<div style='background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 12px; color: #F59E0B;'>🟡 Offline Practice Mode</div>", unsafe_allow_html=True)
                 
-        # API guides expander
-        with st.expander("ℹ️ How to get your keys"):
-            st.markdown(
-                """
-                **For Google Gemini:**
-                1. Go to <a href='https://aistudio.google.com/' target='_blank'>Google AI Studio</a>.
-                2. Click **"Get API Key"** -> **"Create API Key in new project"**.
-                
-                **For DeepSeek:**
-                1. Go to <a href='https://platform.deepseek.com/' target='_blank'>DeepSeek Platform</a>.
-                2. Navigate to **"API Keys"** -> **"Create API Key"**.
-                """,
-                unsafe_allow_html=True
-            )
+        with st.expander("🔑 Help Center"):
+            st.markdown("""
+            <p style='font-size: 11px; color: #94A3B8;'>Google Gemini keys are generated 100% free of charge via <a href='https://aistudio.google.com/' target='_blank' style='color:#3B82F6;'>AI Studio</a>. No credit card required.</p>
+            """, unsafe_allow_html=True)
     else:
         st.session_state.api_connected = False
-        st.info("💡 **Local Practice Mode active.** Offline simulator is active. No keys required.")
+        st.markdown("<div style='background: rgba(37,99,235,0.1); border: 1px solid rgba(37,99,235,0.3); border-radius: 6px; padding: 12px; font-size: 12px; color: #3B82F6; font-weight: 500;'>⚡ Simulator Engine Active<br/><span style='color: #64748B; font-size: 10px;'>No API key required.</span></div>", unsafe_allow_html=True)
         
     st.write("---")
     
-    # Active Session Analytics
-    st.subheader("📈 Practice Metrics")
-    st.metric("Tone Match Score", f"{st.session_state.score}/100")
-    st.metric("Objections Overcome", f"{st.session_state.objections_handled}")
+    # Premium HUD Metrics inside Sidebar
+    st.markdown("<p style='font-size: 12px; color: #64748B; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding-left: 8px; margin-bottom: 12px;'>📊 My Performance HUD</p>", unsafe_allow_html=True)
     
-    if st.button("Reset Operational Metrics", use_container_width=True):
-        st.session_state.messages = []
-        st.session_state.is_call_active = False
-        st.session_state.score = 100
-        st.session_state.objections_handled = 0
-        st.success("Session reset.")
-        st.rerun()
-
-# ----------------- MAIN TITLE HEADER -----------------
-st.markdown(
-    """
-    <div style='background-color: #ffffff; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 25px; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.02);'>
-        <h1 style='margin: 0px;'>⚡ SalesFlow AI - Enterprise Sales Coach</h1>
-        <p style='color: #64748b; font-size: 16px; margin-top: 5px; margin-bottom: 0px;'>The all-in-one AI sales assistant. Practice cold calling, handle raw objections, plan face-to-face closes, compose emails, and write high-converting copy in any B2B/B2C sector.</p>
+    st.markdown(f"""
+    <div style='background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; margin-bottom: 12px;'>
+        <p style='font-size: 11px; color: #94A3B8; margin-bottom: 2px;'>Rapport Score</p>
+        <h3 style='margin: 0; color: white !important; font-size: 20px; font-weight: 700;'>{st.session_state.score} / 100</h3>
     </div>
-    """,
-    unsafe_allow_html=True
-)
+    <div style='background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; margin-bottom: 16px;'>
+        <p style='font-size: 11px; color: #94A3B8; margin-bottom: 2px;'>Objections Overcome</p>
+        <h3 style='margin: 0; color: white !important; font-size: 20px; font-weight: 700;'>{st.session_state.objections_handled}</h3>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Upgrade / Version HUD Card
+    st.markdown("""
+    <div style='background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 20px;'>
+        <h4 style='color: white !important; font-size: 13px; font-weight: 700; margin-top: 0; margin-bottom: 4px;'>Upgrade to SaaS Enterprise</h4>
+        <p style='color: #94A3B8; font-size: 11px; margin-bottom: 12px; line-height: 1.4;'>Unlock deeper call transcription analysis, custom persona deployments, and REST API synchronizations.</p>
+        <a href='https://checkout.lemonsqueezy.com/checkout/' target='_blank' style='display: block; text-align: center; background: #2563EB; color: white; padding: 8px; border-radius: 6px; font-size: 11px; font-weight: 600; text-decoration: none;'>🚀 Go Unlimited</a>
+    </div>
+    <div style='text-align: center; color: #64748B; font-size: 10px;'>SalesFlow AI SaaS v2.4</div>
+    """, unsafe_allow_html=True)
 
-# ----------------- SEPARATION MANAGER: DUAL MODULE MODES -----------------
-st.markdown("## Select Active Sales Module")
+# ----------------- PREMIUM MAIN HEADER BANNER (Notion / Vercel style) -----------------
+st.markdown("""
+<div class="hero-container">
+    <div style="display: flex; align-items: center; margin-bottom: 12px;">
+        <span class="icon" style="font-size: 32px; color: #3B82F6;">auto_awesome</span>
+        <span class="badge-premium">Enterprise Suite</span>
+    </div>
+    <div class="hero-title">SalesFlow AI — Complete Revenue Enablement Platform</div>
+    <div class="hero-tagline">Analyze transcripts, practice outbound phone calls, write emails, and generate short-form prospecting Loom video scripts. All powered by advanced Google Gemini & DeepSeek AI models.</div>
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-value">Google / DeepSeek</div>
+            <div class="kpi-label">API Connective Brain</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-value">97% Confidence</div>
+            <div class="kpi-label">Auditing Precision</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-value">Sandler / SPIN</div>
+            <div class="kpi-label">Sales Frameworks</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-value">100% Secure</div>
+            <div class="kpi-label">SaaS Encryption</div>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ----------------- MODULE SWITCHER (Tab Section) -----------------
+st.markdown("### 💼 Active Workspace Module")
 active_module = st.radio(
-    "Choose which workspace to load:",
+    "Toggle between different environments to change tabs and workflows:",
     [
         "📞 Module A: Outbound Cold-Call Assistant Agent (Core Simulator & Prep)",
         "🤝 Module B: General Closing & Outreach Copilot (Face-to-Face, Email, SMS & Video)",
@@ -303,13 +538,15 @@ active_module = st.radio(
 
 st.write("---")
 
-# Load existing user profiles
-saved_profiles = load_user_profiles()
-
 # ==================== MODULE A: OUTBOUND COLD-CALL ASSISTANT AGENT ====================
 if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Simulator & Prep)":
-    st.markdown("## 📞 Outbound Cold-Call Assistant Agent")
-    st.write("This is your core dialing companion. Practice cold calls, architect opening lines, generate discovery questions, and study objection battlecards.")
+    
+    st.markdown("""
+    <div style='display: flex; align-items: center; margin-bottom: 20px;'>
+        <span class="icon" style="font-size: 28px; color: #1E40AF;">phone_in_talk</span>
+        <h2 style='margin: 0;'>📞 Module A: Outbound Cold-Call Assistant Agent</h2>
+    </div>
+    """, unsafe_allow_html=True)
     
     sub_tab_practice, sub_tab_opener, sub_tab_discovery, sub_tab_precall, sub_tab_battlecards = st.tabs([
         "📞 Live Cold Call Roleplay Arena",
@@ -321,29 +558,29 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
     
     # 1. LIVE COLD CALL ROLEPLAY ARENA
     with sub_tab_practice:
-        st.subheader("1. Configure Your Target Market (Universal Setup Wizard)")
-        st.write("Choose from your saved custom profiles, use industry recommendations, or type in your custom sector completely from scratch:")
-
+        st.markdown("""
+        <div class="saas-card">
+            <h3>⚙️ Step 1: Onboarding Setup Wizard</h3>
+            <p style='color: #6B7280; font-size: 14px; margin-bottom: 20px;'>Select any saved custom profile, use industry presets, or configure a blank setup from scratch.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
         col_p_load, col_wiz1 = st.columns([1, 1])
         
         with col_p_load:
-            # Dropdown to load saved user profiles so they never have to type from scratch!
             loaded_p_name = st.selectbox(
-                "📂 Load My Saved Profiles:",
+                "📂 Saved Private Profiles:",
                 list(saved_profiles.keys()),
-                help="Select any profile you previously configured and saved to populate fields instantly!"
+                help="Load configured profiles instantly."
             )
-            
-            # Populate based on selection
             if loaded_p_name != "Select a Profile...":
                 st.session_state.setup_industry = saved_profiles[loaded_p_name]["industry"]
                 st.session_state.setup_persona = saved_profiles[loaded_p_name]["persona"]
                 st.session_state.setup_mood = saved_profiles[loaded_p_name]["mood"]
         
         with col_wiz1:
-            # RESTORED NEUTRAL SECTOR DROP-DOWN (No bias, completely universal, plus custom typing option!)
             sector_choice = st.selectbox(
-                "Select Broad Industry Recommendation:",
+                "Select Broad Industry recommendation:",
                 [
                     "Select Industry Recommendation...",
                     "💻 B2B Software & Enterprise SaaS",
@@ -355,12 +592,11 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
                     "✍️ Custom Sector (Write my own)"
                 ]
             )
-        
+            
         suggested_personas = []
         suggested_moods = []
         default_product = ""
         
-        # EXTENDED NEUTRAL PROFESSION LISTS
         if sector_choice == "💻 B2B Software & Enterprise SaaS":
             default_product = "Enterprise Cloud Security SaaS"
             suggested_personas = ["Chief Information Security Officer (CISO)", "Chief Financial Officer (CFO)", "VP of Sales Operations", "Director of HR & Benefits", "Chief Technology Officer (CTO)", "VP of Global Procurement", "Custom (Write my own)"]
@@ -390,7 +626,6 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
             suggested_personas = ["Custom (Write my own)"]
             suggested_moods = ["Custom (Write my own)"]
 
-        # Apply suggestions if selected
         if sector_choice != "Select Industry Recommendation..." and sector_choice != "":
             st.session_state.setup_industry = default_product
             if suggested_personas:
@@ -398,24 +633,22 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
             if suggested_moods:
                 st.session_state.setup_mood = suggested_moods[0]
 
-        st.write("")
-        st.write("##### 🔧 Custom Setup Parameters (Type or Edit freely):")
+        # Parameter Form Wrapper
+        st.write("🔧 **Finalize Target Market Parameters:**")
         col_in1, col_in2, col_in3 = st.columns(3)
         with col_in1:
-            ui_industry = st.text_input("My Product / Platform:", value=st.session_state.setup_industry, placeholder="e.g. Invoicing App, HR Software, Real Estate, Paints, Tiles", key="call_prod_inp")
+            ui_industry = st.text_input("My Product / Platform:", value=st.session_state.setup_industry, placeholder="e.g. Paints, Tiles, Security Software, Mortgages", key="call_prod_inp")
         with col_in2:
-            ui_persona = st.text_input("Target Customer Title / Role:", value=st.session_state.setup_persona, placeholder="e.g. Bob the Plumber, VP of Security, Architect, Builder", key="call_pers_inp")
+            ui_persona = st.text_input("Target Customer Title / Role:", value=st.session_state.setup_persona, placeholder="e.g. Architect, Builder, CISO, Homeowner", key="call_pers_inp")
         with col_in3:
             ui_mood = st.text_input("Buyer's Current Mood / Style:", value=st.session_state.setup_mood, placeholder="e.g. Stressed on site, highly skeptical of quality, defensive", key="call_mood_inp")
 
-        # Save and Apply inputs in state
         st.session_state.setup_industry = ui_industry
         st.session_state.setup_persona = ui_persona
         st.session_state.setup_mood = ui_mood
 
-        # 💾 Profile Manager Expander (Add & Delete custom features!)
-        st.write("")
-        with st.expander("💾 Profile Manager (Save, Edit, or Delete Custom Configurations)"):
+        # Save profile card
+        with st.expander("💾 Save this Custom setup as a Profile (Never start from scratch!)"):
             col_save1, col_save2 = st.columns([2, 1])
             with col_save1:
                 profile_save_name = st.text_input("Profile Name:", placeholder="e.g. My Custom Paint Sales Setup")
@@ -427,7 +660,6 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
                     time.sleep(0.5)
                     st.rerun()
             
-            # Delete Profile Sub-section
             st.write("---")
             st.write("##### ❌ Delete an Existing Profile:")
             col_del1, col_del2 = st.columns([2, 1])
@@ -446,15 +678,23 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
                     st.rerun()
 
         st.write("---")
-        st.subheader("2. Outbound Practice Simulator Room")
-
+        
+        # Dial Room
         col_room1, col_room2 = st.columns([2, 1])
         
         with col_room1:
-            if not st.session_state.api_connected:
-                st.info("💡 **Practice Simulator Mode active.** Offline simulator is active. To connect this app directly to the live advanced brain of Google Gemini or DeepSeek, configure your selected API provider in the sidebar, paste your API key, and click **Connect API**!")
-                
-            st.write(f"### Live Call: Calling {ui_persona if ui_persona else '[Target Prospect]'}")
+            st.markdown("""
+            <div class="saas-card-dark" style='margin-bottom: 16px;'>
+                <div style='display: flex; align-items: center; justify-content: space-between;'>
+                    <div style='display: flex; align-items: center;'>
+                        <span class="icon" style="color: #EF4444; font-size: 20px;">fiber_manual_record</span>
+                        <h3 style='margin: 0; color: white;'>Live Call Recording & AI Audit Mode</h3>
+                    </div>
+                    <span class="badge-premium" style="background: rgba(37,99,235,0.2); color:#3B82F6;">Session Active</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
             initial_greeting = f"Yeah, this is {ui_persona if ui_persona else 'the owner'} speaking. I'm literally in the middle of something right now. Make it quick, what is this?"
             
             if not st.session_state.is_call_active:
@@ -462,180 +702,40 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
                     st.session_state.is_call_active = True
                     st.session_state.messages = [{"role": "assistant", "content": initial_greeting}]
                     st.rerun()
-                    
+            
+            # Chat Container
+            st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
             for msg in st.session_state.messages:
-                with st.chat_message(msg["role"]):
-                    st.write(msg["content"])
-                    
+                if msg["role"] == "user":
+                    st.markdown(f"""
+                    <div class="chat-bubble-user">
+                        {msg["content"]}
+                        <div class="chat-meta">
+                            <span class="icon" style="font-size: 14px;">person</span> Ikechukwu Onuekwusi
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div class="chat-bubble-ai">
+                        {msg["content"]}
+                        <div class="chat-meta-ai">
+                            <span class="chat-badge-coach">Prospect AI</span> {ui_persona.split(',')[0]}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
             if st.session_state.is_call_active:
                 user_msg = st.chat_input("Enter your sales response...")
                 
                 if user_msg:
                     st.session_state.messages.append({"role": "user", "content": user_msg})
-                    st.chat_message("user").write(user_msg)
+                    st.rerun()
                     
-                    with st.spinner("Prospect is typing..."):
-                        time.sleep(0.8)
-                        user_msg_lower = user_msg.lower()
-                        ai_reply = ""
-                        score_deduction = 0
-                        feedback_msg = ""
-                        end_call = False
-                        
-                        jargon = ["synergy", "paradigm shift", "digital transformation", "delighted to", "unprecedented efficiency", "disruptive innovations"]
-                        if any(word in user_msg_lower for word in jargon):
-                            ai_reply = f"Look, you sound like you are reading from a standard enterprise sales playbook. I don't do corporate buzzwords. Goodbye."
-                            score_deduction = 35
-                            feedback_msg = "Critical Sales Error! Buyers hate tech jargon and corporate scripts. Be direct, clear, and colloquial."
-                            end_call = True
-
-                        elif len(user_msg.split()) < 4:
-                            ai_reply = "If you don't even have a clear reason to speak with me, why are you calling my phone? Goodbye."
-                            score_deduction = 20
-                            feedback_msg = "Your response was too short. Speak with confident pacing and clarity."
-                            end_call = True
-
-                        # 1. LIVE GOOGLE GEMINI MODE (Natively powered by st.session_state securely saved keys!)
-                        elif api_provider == "Google Gemini API" and st.session_state.api_connected and st.session_state.active_api_provider == "Google Gemini API":
-                            try:
-                                import google.generativeai as genai
-                                genai.configure(api_key=st.session_state.active_api_key)
-                                model = genai.GenerativeModel(
-                                    model_name="gemini-1.5-flash",
-                                    system_instruction=f"""
-                                    You are roleplaying as {ui_persona}, a target customer in the {ui_industry} space.
-                                    Your current personality/mood constraint is: {ui_mood}.
-                                    The user is an outbound sales representative.
-                                    
-                                    Your Goal: Act as a highly realistic, tough, skeptical buyer. Respond to the user's messages brief, blunt, and naturally.
-                                    You must challenge the user with typical objections relevant to {ui_industry} (e.g. 'not interested,' 'too expensive,' 'already happy with paper,' 'using a competitor like Jobber/ServiceTitan').
-                                    
-                                    Rules of Engagement:
-                                    1. Stay completely in character.
-                                    2. Do not agree to a 10-minute meeting on the first turn. Push back at least twice.
-                                    3. If they handle your objections well (using consultative empathy, avoiding scripts, showing clear micro-value, and proposing a frictionless 10-minute meeting), agree to the calendar invite.
-                                    4. If they read a scripted pitch, use tech jargon, or don't listen, hang up on them.
-                                    """
-                                )
-                                response = model.generate_content(user_msg)
-                                ai_reply = response.text
-                                if any(word in user_msg_lower for word in ["demo", "10 minutes", "tuesday", "schedule", "calendar"]):
-                                    st.session_state.objections_handled += 1
-
-                            except Exception as e:
-                                st.error(f"Gemini API Error: {str(e)}. Defaulting to Practice Simulator.")
-
-                        # 2. LIVE DEEPSEEK AI MODE (Natively powered by st.session_state securely saved keys!)
-                        elif api_provider == "DeepSeek API" and st.session_state.api_connected and st.session_state.active_api_provider == "DeepSeek API":
-                            try:
-                                headers = {
-                                    "Content-Type": "application/json",
-                                    "Authorization": f"Bearer {st.session_state.active_api_key}"
-                                }
-                                system_prompt = f"You are roleplaying as {ui_persona}, a target customer in the {ui_industry} space. Mood: {ui_mood}. The user is an outbound sales representative. Act as a realistic, skeptical, busy buyer. Respond with brief, blunt, natural objections. Force them to overcome objections before booking a 10-min meeting."
-                                history_payload = [{"role": "system", "content": system_prompt}]
-                                for m in st.session_state.messages[:-1]:
-                                    role_map = "assistant" if m["role"] == "assistant" else "user"
-                                    history_payload.append({"role": role_map, "content": m["content"]})
-                                history_payload.append({"role": "user", "content": user_msg})
-                                
-                                data = {
-                                    "model": "deepseek-chat",
-                                    "messages": history_payload,
-                                    "temperature": 0.7
-                                }
-                                response = requests.post("https://api.deepseek.com/v1/chat/completions", json=data, headers=headers, timeout=15)
-                                if response.status_code == 200:
-                                    ai_reply = response.json()["choices"][0]["message"]["content"]
-                                    if any(word in user_msg_lower for word in ["demo", "10 minutes", "tuesday", "schedule", "calendar"]):
-                                        st.session_state.objections_handled += 1
-                                else:
-                                    st.error(f"DeepSeek API Error (Code {response.status_code}): {response.text}")
-                            except Exception as e:
-                                st.error(f"Failed to connect to DeepSeek API: {str(e)}")
-
-                        # 3. OFFLINE SIMULATOR MODE
-                        if not ai_reply:
-                            if any(word in user_msg_lower for word in ["demo", "minutes", "schedule", "calendar", "meeting", "tuesday", "wednesday", "thursday"]):
-                                if st.session_state.objections_handled >= 1:
-                                    ai_reply = f"Fine. If it's really only going to take 10 minutes and you can show me how this actually solves our headaches with {ui_industry}, I'll take a look. Tuesday morning works. Send me a link."
-                                    feedback_msg = "Outstanding close! You validated their pains and successfully booked a low-friction meeting!"
-                                    end_call = True
-                                else:
-                                    ai_reply = f"A meeting? I just told you I'm in the middle of a job site. I don't even know why I should care. What are you actually selling?"
-                                    score_deduction = 15
-                                    feedback_msg = "You went for the meeting/demo ask too fast. Handle an objection and build basic value first!"
-                            
-                            elif any(word in user_msg_lower for word in ["busy", "time", "mid", "roof", "sink"]):
-                                ai_reply = f"Look, we are extremely busy right now. I don't have time for cold pitches."
-                                st.session_state.objections_handled += 1
-                                feedback_msg = "Objection: Busy Brush-off. Empathize immediately, pivot to time-saving, and suggest a 10-min slot next week."
-                            
-                            elif any(word in user_msg_lower for word in ["price", "cost", "expensive", "money", "budget"]):
-                                ai_reply = f"Our margins are completely tight right now. We can't afford to bring on new monthly expenses."
-                                st.session_state.objections_handled += 1
-                                feedback_msg = "Objection: Budget constraint. Pivot to ROI—explain how your tool saves them more money than it costs."
-                            
-                            elif any(word in user_msg_lower for word in ["already", "competitor", "happy", "using"]):
-                                ai_reply = f"We already use a competitor to manage our {ui_industry} operations. We are happy with it."
-                                st.session_state.objections_handled += 1
-                                feedback_msg = "Objection: Competitor/Status Quo. Acknowledge and respect their current tool, then suggest a 10-min comparative walkthrough."
-                            
-                            elif any(word in user_msg_lower for word in ["email", "send"]):
-                                ai_reply = f"Just send me an email. I'll take a look at it when I have some free time."
-                                st.session_state.objections_handled += 1
-                                feedback_msg = "Objection: Send me an email. Agree enthusiastically, then ask a simple qualification question to keep them talking!"
-                            
-                            else:
-                                responses = [
-                                    f"Why should we look at your product? spread sheets work fine for our operations.",
-                                    f"Is this going to require our team to learn a complex new process, or is it actually simple?",
-                                    f"What separates your system from every other cold caller hitting my phone today?"
-                                ]
-                                ai_reply = random.choice(responses)
-                                score_deduction = 10
-                                feedback_msg = "Prospect is testing you. Empathize with their daily operational friction and highlight how simple your product is."
-
-                        # Record reply
-                        st.session_state.score = max(0, st.session_state.score - score_deduction)
-                        st.session_state.messages.append({"role": "assistant", "content": ai_reply})
-                        st.chat_message("assistant").write(ai_reply)
-
-                        if feedback_msg:
-                            if score_deduction > 0:
-                                st.warning(f"💡 **Coach Tip:** {feedback_msg} (-{score_deduction} pts)")
-                            else:
-                                st.success(f"💡 **Coach Tip:** {feedback_msg}")
-
-                        if end_call:
-                            st.session_state.is_call_active = False
-                            st.write("---")
-                            if st.session_state.score >= 80:
-                                st.balloons()
-                                st.success("🎉 **SUCCESSFUL DEMO BOOKED!** You successfully navigated the objection obstacles. Outstanding adaptive performance!")
-                            else:
-                                st.error("❌ **CALL ENDED.** The prospect hung up on you. Practice makes perfect—review the Coach Tips and click dial to retry.")
-                        
-                            if st.button("Reset Simulator", key="practice_reset_under"):
-                                st.session_state.messages = []
-                                st.session_state.is_call_active = False
-                                st.rerun()
-                                
-        with col_room2:
-            st.subheader("💡 My Daily Coach Checklist")
-            st.markdown(
-                """
-                *   **Empathize & Validate:** Never argue with an objection. Agree that their time/current setup is valuable, then pivot to how you simplify their lives.
-                *   **Acknowledge and Pivot:** Speak with confident momentum. Re-phrase objections into business bottlenecks you solve.
-                *   **The Low-Friction Ask:** Propose a 10-minute comparison, never a 1-hour presentation.
-                """
-            )
-
     # 2. COLD CALL OPENER ARCHITECT
     with sub_tab_opener:
         st.subheader("🎯 Cold Call Opener Architect")
-        st.write("Build high-converting opening lines (hooks) designed to disarm busy prospects based on modern sales methodologies.")
-        
         col_op1, col_em2 = st.columns(2)
         with col_op1:
             op_product = st.text_input("My Product/Platform Name:", value=ui_industry, key="op_prod")
@@ -659,8 +759,6 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
     # 3. CONSULTATIVE DISCOVERY GENERATOR
     with sub_tab_discovery:
         st.subheader("💡 Consultative SPIN Discovery Question Generator")
-        st.write("Generate consultative questions based on the SPIN framework to qualify buyers and drive urgency.")
-        
         col_d1, col_d2 = st.columns(2)
         with col_d1:
             d_ind = st.text_input("Prospect Industry/Field:", value=ui_industry, key="disc_ind")
@@ -687,8 +785,6 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
     # 4. PRE-CALL PREP SHEET PLANNER
     with sub_tab_precall:
         st.subheader("📝 Pre-Call Prep Sheet Planner")
-        st.write("Construct a complete structural battle-plan for strategic target accounts before you dial.")
-        
         col_sh1, col_sh2 = st.columns(2)
         with col_sh1:
             sh_company = st.text_input("Target Account / Company Name:", value="Miller & Sons Mechanical", key="pre_comp")
@@ -716,8 +812,6 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
     # 5. OBJECTION BATTLECARDS
     with sub_tab_battlecards:
         st.subheader("🛡️ Outbound Objection Battlecards")
-        st.write("Browse through master-level B2B outbound frameworks to overcome any industry brush-offs:")
-        
         obj_choice = st.selectbox("Select Objection Type:", ["I'm too busy, call me back / send an email.", "I use pen and paper / Excel and it works fine.", "We already use a competitor.", "I'm too small / don't need it."], key="battle_obj_select")
         
         if obj_choice == "I'm too busy, call me back / send an email.":
@@ -763,8 +857,13 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
 
 # ==================== MODULE B: GENERAL CLOSING & OUTREACH COPILOT ====================
 elif active_module == "🤝 Module B: General Closing & Outreach Copilot (Face-to-Face, Email, SMS & Video)":
-    st.markdown("## 🤝 General Closing & Outreach Copilot")
-    st.write("This is your deal closing workshop. Plan in-person face-to-face negotiations, optimize raw pitches, write emails/texts, and storyboard selfie video Loom pitches.")
+    
+    st.markdown("""
+    <div style='display: flex; align-items: center; margin-bottom: 20px;'>
+        <span class="icon" style="font-size: 28px; color: #7C3AED;">handshake</span>
+        <h2 style='margin: 0;'>🤝 Module B: General Closing & Outreach Copilot</h2>
+    </div>
+    """, unsafe_allow_html=True)
     
     sub_tab_physical, sub_tab_optimizer, sub_tab_emails, sub_tab_sms, sub_tab_videos = st.tabs([
         "🤝 Face-to-Face Closing Planner",
@@ -777,8 +876,6 @@ elif active_module == "🤝 Module B: General Closing & Outreach Copilot (Face-t
     # 1. FACE-TO-FACE CLOSING PLANNER
     with sub_tab_physical:
         st.subheader("🤝 Face-to-Face Negotiation & Closing Planner")
-        st.write("Prepare for high-stakes, in-person physical sales meetings. Map out your presentation structure, on-the-spot body-language triggers, and consultative closes:")
-        
         col_ph1, col_ph2 = st.columns(2)
         with col_ph1:
             ph_cust = st.text_input("Customer Name / Industry:", value=st.session_state.setup_persona, placeholder="e.g. Bob, Miller Plumbing Owner", key="ph_cust_inp")
@@ -811,8 +908,6 @@ elif active_module == "🤝 Module B: General Closing & Outreach Copilot (Face-t
     # 2. AI OUTBOUND PITCH OPTIMIZER
     with sub_tab_optimizer:
         st.subheader("✍️ Outbound Pitch & Script Optimizer")
-        st.write("Paste your raw, current sales pitch or script. The AI will analyze it and automatically rewrite it using consultative sales frameworks (Sandler, Challenger, SPIN) to maximize conversions.")
-        
         raw_pitch = st.text_area("Paste Your Current Script/Pitch:", placeholder="e.g. Hello, I'm Ikechukwu from Jobtable. We have a great software for contractors that does dispatching, scheduling, and invoicing. It's really simple and cheap. Do you have time for a demo next week?", key="opt_text_area")
         
         if st.button("⚡ Optimize My Pitch", type="primary", use_container_width=True, key="opt_btn"):
@@ -844,8 +939,6 @@ elif active_module == "🤝 Module B: General Closing & Outreach Copilot (Face-t
     # 3. AI OUTBOUND EMAIL COMPOSER
     with sub_tab_emails:
         st.subheader("✉️ Outbound AI Follow-up Email Composer")
-        st.write("Generate a high-converting, personalized follow-up email sequence in 1 click for any industry:")
-        
         col_em1, col_em2 = st.columns(2)
         with col_em1:
             em_trade = st.text_input("Target Customer Industry/Profile:", value=st.session_state.setup_industry, key="email_ind_text_b")
@@ -884,8 +977,6 @@ elif active_module == "🤝 Module B: General Closing & Outreach Copilot (Face-t
     # 4. AI TEXT RESPONSE & SMS WRITER
     with sub_tab_sms:
         st.subheader("💬 AI Text Response & SMS Writer")
-        st.write("When buyers say **'Just text me details'** or **'I'm too busy, text me,'** copy-paste these low-friction SMS templates:")
-        
         sms_trade = st.text_input("Target Trade/Profession:", value="Plumbing", key="sms_trade_text_b")
         sms_pain = st.radio("Core Value Angle:", ["Reclaiming lost material charges", "Getting paid in the driveway (cashflow)", "Whiteboard scheduling headaches", "Bypassing night-time admin work"], key="sms_pain_radio_b")
         
@@ -908,8 +999,6 @@ elif active_module == "🤝 Module B: General Closing & Outreach Copilot (Face-t
     # 5. AI VIDEO PROSPECTING SCRIPT STUDIO
     with sub_tab_videos:
         st.subheader("🎬 AI Video Prospecting Script Studio")
-        st.write("Record a personalized 60-second video (Loom/Vidalytics) to send directly to a prospect. Here is your storyboard:")
-        
         vid_trade = st.text_input("Trade Target Group:", value="Plumbing", key="video_trade_text_b")
         vid_prop = st.text_input("Physical Prop in Video (e.g. Copper pipeline elbow, receipt book, mobile phone):", value="Copper pipeline joint", key="video_prop_text_b")
         
@@ -934,8 +1023,13 @@ elif active_module == "🤝 Module B: General Closing & Outreach Copilot (Face-t
 
 # ==================== MODULE C: SALES ACADEMY & INDUSTRY ONBOARDING HUB ====================
 elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (ABC Industry Guides & Tests)":
-    st.markdown("## 🎓 Sales Academy & Industry Onboarding Hub")
-    st.write("If you have **zero idea** about your target industry, use this master suite to learn any field from scratch (like ABC). Take dynamic tests to analyze your mistakes and catch up to speed.")
+    
+    st.markdown("""
+    <div style='display: flex; align-items: center; margin-bottom: 20px;'>
+        <span class="icon" style="font-size: 28px; color: #10B981;">school</span>
+        <h2 style='margin: 0;'>🎓 Module C: Sales Academy & Industry Onboarding Hub</h2>
+    </div>
+    """, unsafe_allow_html=True)
     
     sub_tab_academy, sub_tab_test, sub_tab_history = st.tabs([
         "📖 Industry Onboarding Guides (ABCs)",
@@ -943,17 +1037,13 @@ elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (A
         "📜 My Quiz Performance History"
     ])
     
-    # Setup values for dynamic learning references (100% generic)
     academy_industry = st.session_state.setup_industry if st.session_state.setup_industry else "Your Configured Target Market"
     
     # 1. INDUSTRY ONBOARDING GUIDES (ABCs)
     with sub_tab_academy:
         st.subheader(f"📖 Mastering {academy_industry} from Scratch")
-        st.write("We have mapped out different onboarding lessons to speed up your learning process:")
-        
         col_l1, col_l2 = st.columns(2)
         
-        # 100% NEUTRAL & UNIVERSAL B2B SALES PLAYBOOK LESSONS
         with col_l1:
             st.markdown(
                 f"""
@@ -985,12 +1075,9 @@ elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (A
                 """
             )
             
-        # ==================== DYNAMIC VIDEO & BLOG MEDIA LINK HUB ====================
+        # DYNAMIC VIDEO & BLOG MEDIA LINK HUB
         st.write("---")
         st.write("### 📺 Visual & Practical Study Hub (Media Resources)")
-        st.write("People learn better visually! Click on these high-quality curated videos and blog posts to understand exactly what your prospect goes through on a daily basis:")
-        
-        # Universal dynamic visual media suggestions
         col_media1, col_media2 = st.columns(2)
         with col_media1:
             st.markdown(
@@ -1020,8 +1107,6 @@ elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (A
     # 2. TEST ROOM (QUESTIONS & ANSWERS)
     with sub_tab_test:
         st.subheader("📝 Adaptive Sales Certification & Testing")
-        st.write("Choose your track and difficulty to generate an interactive multi-choice quiz. We will evaluate your knowledge in real-time!")
-        
         col_t1, col_t2 = st.columns([1, 1])
         
         with col_t1:
@@ -1037,7 +1122,6 @@ elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (A
             st.write("---")
             st.write("### 📝 Certification Exam Sheet")
             
-            # Dynamic questions generation based on selection to make it fully playable!
             if quiz_track == "Industry Domain Knowledge Track":
                 if quiz_difficulty == "Easy":
                     q1 = "1. What does the term 'Dispatching' represent in B2B field operations?"
@@ -1094,7 +1178,6 @@ elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (A
         with col_t2:
             st.write("### 📊 Quiz Grading & Performance Report")
             if submit_quiz:
-                # Evaluate answers
                 score = 0
                 mistakes = []
                 
@@ -1108,16 +1191,14 @@ elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (A
                 else:
                     mistakes.append(f"Q2 Incorrect: You chose '{ans2}'. Correct answer was '{correct_ans[1]}'")
                 
-                # Render results card
                 if score == 100:
                     st.balloons()
                     st.success(f"🏆 **100% PERFECT SCORE!** You scored 100/100 on the {quiz_difficulty} {quiz_track}!")
                 elif score == 50:
-                    st.warning(f"⚠️ **DECENT OUTCOME: 50/100.** You got 1 out of 2 questions correct on the {quiz_difficulty} tier. Keep reviewing your notes!")
+                    st.warning(f"⚠️ **DECENT OUTCOME: 50/100.** You got 1 out of 2 questions correct on the {quiz_difficulty} tier.")
                 else:
                     st.error(f"❌ **TRY AGAIN: 0/100.** You missed both questions. Read the ABC Onboarding Guides and try again.")
                     
-                # Save into Session History
                 history_entry = {
                     "Timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                     "Industry Context": academy_industry,
@@ -1130,7 +1211,7 @@ elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (A
                 st.session_state.quiz_history.append(history_entry)
                 st.success("Performance result logged in your private study history log!")
 
-    # 3. MY QUIZ PERFORMANCE HISTORY (The mistake tracer!)
+    # 3. MY QUIZ PERFORMANCE HISTORY
     with sub_tab_history:
         st.subheader("📜 My Private Study History Log")
         st.write("Use this logs database to trace your incorrect answers, analyze structural sales mistakes, and catch up to speed:")
