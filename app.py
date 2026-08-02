@@ -20,7 +20,7 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;600;700;800&family=Material+Icons+Outlined&display=swap');
     
     /* Global Base Reset */
-    .saas-bg { 
+    .main { 
         background-color: #f8fafc; 
         font-family: 'Inter', sans-serif;
         color: #0f172a;
@@ -104,12 +104,13 @@ st.markdown("""
 # ----------------- PERSISTENT USER PROFILES DATABASE (JSON-based) -----------------
 PROFILES_FILE = "sales_profiles.json"
 
-# 100% blank starting list of custom profiles
+# Reverted to 100% blank slate. Only "Select a Profile..." exists on first load. No prefilled profiles!
 DEFAULT_PROFILES = {
     "Select a Profile...": {
         "industry": "",
         "persona": "",
         "mood": "",
+        "customer_name": "",
         "market_type": "💻 B2B (Business-to-Business)"
     }
 }
@@ -126,12 +127,13 @@ def load_user_profiles():
     except Exception:
         return DEFAULT_PROFILES
 
-def save_user_profile(name, industry, persona, mood, market_type):
+def save_user_profile(name, industry, persona, mood, customer_name, market_type):
     profiles = load_user_profiles()
     profiles[name] = {
         "industry": industry,
         "persona": persona,
         "mood": mood,
+        "customer_name": customer_name,
         "market_type": market_type
     }
     with open(PROFILES_FILE, "w") as f:
@@ -171,6 +173,8 @@ if "setup_persona" not in st.session_state:
     st.session_state.setup_persona = ""
 if "setup_mood" not in st.session_state:
     st.session_state.setup_mood = ""
+if "setup_customer_name" not in st.session_state:
+    st.session_state.setup_customer_name = ""
 # 4. Analytics
 if "objections_handled" not in st.session_state:
     st.session_state.objections_handled = 0
@@ -186,8 +190,81 @@ if "product_chats" not in st.session_state:
 if "sales_chats" not in st.session_state:
     st.session_state.sales_chats = []
 
+# 7. Conversational Refinement States (Opener and Physical Tabs)
+if "opener_ideas" not in st.session_state:
+    st.session_state.opener_ideas = []
+if "opener_chat_history" not in st.session_state:
+    st.session_state.opener_chat_history = []
+if "physical_ideas" not in st.session_state:
+    st.session_state.physical_ideas = []
+if "physical_chat_history" not in st.session_state:
+    st.session_state.physical_chat_history = []
+
 # Load existing user profiles
 saved_profiles = load_user_profiles()
+
+# ----------------- CALLBACK FUNCTIONS FOR PERFECT STATE SYNCING -----------------
+def on_profile_load_change():
+    selected_p = st.session_state.sidebar_profile_loader_widget
+    if selected_p != "Select a Profile...":
+        profiles = load_user_profiles()
+        p_data = profiles[selected_p]
+        st.session_state.setup_industry = p_data["industry"]
+        st.session_state.setup_persona = p_data["persona"]
+        st.session_state.setup_mood = p_data["mood"]
+        st.session_state.setup_customer_name = p_data.get("customer_name", "")
+        st.session_state.setup_market_type = p_data.get("market_type", "💻 B2B (Business-to-Business)")
+        st.session_state.messages = []
+        st.session_state.is_call_active = False
+
+def on_preset_recommendation_change():
+    choice = st.session_state.preset_recommendation_widget
+    market_type_choice = st.session_state.setup_market_type
+    st.session_state.setup_customer_name = ""
+    
+    if choice == "💻 B2B Software & Enterprise SaaS":
+        st.session_state.setup_industry = "Enterprise Cloud Security SaaS"
+        st.session_state.setup_persona = "Chief Information Security Officer (CISO)"
+        st.session_state.setup_mood = "Super busy, dealing with an active server patch, highly skeptical"
+    elif choice == "🔨 Construction, Trades & Mechanical Services (Jobtable/MEP)":
+        st.session_state.setup_industry = "Contractor Dispatch & Invoicing App"
+        st.session_state.setup_persona = "Plumbing Contractor Owner"
+        st.session_state.setup_mood = "Super stressed, working under a sink, hates sales scripts"
+    elif choice == "🧱 Building Materials, Paints, Tiles & Finishing":
+        st.session_state.setup_industry = "Premium Paints, Tiles, Kitchens & Sanitary Wares"
+        if market_type_choice == "💻 B2B (Business-to-Business)":
+            st.session_state.setup_persona = "Real Estate Developer (Large-Scale)"
+            st.session_state.setup_mood = "Demanding heavy bulk-discounts, auditing BOQ material costs"
+        else:
+            st.session_state.setup_persona = "Private Homeowner (Finishing personal build)"
+            st.session_state.setup_mood = "Anxious about material costs, wants durability guarantees"
+    elif choice == "🏠 Real Estate, Mortgages & Housing":
+        st.session_state.setup_industry = "Residential Listing & Selling Services"
+        if market_type_choice == "💻 B2B (Business-to-Business)":
+            st.session_state.setup_persona = "Commercial Real Estate Investor"
+            st.session_state.setup_mood = "Opportunistic, looking for immediate off-market deals"
+        else:
+            st.session_state.setup_persona = "For Sale By Owner (FSBO) Private seller"
+            st.session_state.setup_mood = "Annoyed by listing agents, defensive, wants zero commission"
+    elif choice == "🏥 Medical, Clinical & Biotech Services":
+        st.session_state.setup_industry = "Patient Intake & Cloud Billing Software"
+        st.session_state.setup_persona = "Private Clinical Lead Administrator"
+        st.session_state.setup_mood = "Heavily distracted, burdened by compliance and regulations"
+    elif choice == "💼 Professional B2B Services (Logistics, Consulting, HR)":
+        st.session_state.setup_industry = "Third-Party Fleet & Logistics Consulting"
+        st.session_state.setup_persona = "VP of Fleet Logistics"
+        st.session_state.setup_mood = "Stressed by fuel costs and supply chain delays"
+    elif choice == "📦 Retail, Wholesale & Consumer Goods":
+        st.session_state.setup_industry = "Wholesale Inventory Management Portal"
+        st.session_state.setup_persona = "Retail Store Manager"
+        st.session_state.setup_mood = "Defensive about shelf space and inventory turns"
+    elif choice == "✍️ Custom Sector (Write my own)":
+        st.session_state.setup_industry = ""
+        st.session_state.setup_persona = ""
+        st.session_state.setup_mood = ""
+    
+    st.session_state.messages = []
+    st.session_state.is_call_active = False
 
 # ----------------- SIDEBAR: AI CO-PILOT CONFIGURATION -----------------
 with st.sidebar:
@@ -219,7 +296,6 @@ with st.sidebar:
                             import google.generativeai as genai
                             genai.configure(api_key=api_key_input)
                             
-                            # Self-healing fallback list for Google AI Studio API aliases!
                             fallback_models = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"]
                             working_model = None
                             for m_name in fallback_models:
@@ -333,6 +409,9 @@ active_module = st.radio(
 
 st.write("---")
 
+# Load existing user profiles
+saved_profiles = load_user_profiles()
+
 # ==================== MODULE A: OUTBOUND COLD-CALL ASSISTANT AGENT ====================
 if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Simulator & Prep)":
     st.markdown("## 📞 Outbound Cold-Call Assistant Agent")
@@ -349,7 +428,7 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
     # 1. LIVE COLD CALL ROLEPLAY ARENA
     with sub_tab_practice:
         st.subheader("1. Configure Your Target Market (Universal Setup Wizard)")
-        st.write("Configure your sales motion category, choose from saved profiles, select a sector recommendation, or customize parameters freely from scratch:")
+        st.write("Choose from your saved custom profiles, use industry recommendations, or type in your custom sector completely from scratch:")
 
         col_p_load, col_wiz_type, col_wiz1 = st.columns([1, 1, 1])
         
@@ -357,25 +436,22 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
             loaded_p_name = st.selectbox(
                 "📂 Load My Saved Profiles:",
                 list(saved_profiles.keys()),
+                key="sidebar_profile_loader_widget",
+                on_change=on_profile_load_change,
                 help="Select any profile you previously configured and saved to populate fields instantly!"
             )
-            
-            if loaded_p_name != "Select a Profile...":
-                st.session_state.setup_industry = saved_profiles[loaded_p_name]["industry"]
-                st.session_state.setup_persona = saved_profiles[loaded_p_name]["persona"]
-                st.session_state.setup_mood = saved_profiles[loaded_p_name]["mood"]
-                st.session_state.setup_market_type = saved_profiles[loaded_p_name].get("market_type", "💻 B2B (Business-to-Business)")
         
         with col_wiz_type:
+            # Dual selector for B2B or B2C
             market_type = st.radio(
                 "Sales Motion Category:",
                 ["💻 B2B (Business-to-Business)", "🏠 B2C (Business-to-Consumer)"],
-                index=0 if st.session_state.setup_market_type == "💻 B2B (Business-to-Business)" else 1,
-                help="Switching to B2C alters the conversational buyer's psychology, objections (spouse, budget, trust), and academy curriculum."
+                key="setup_market_type",
+                help="Switching to B2C alters the conversational buyer's psychology, objections, and academy curriculum."
             )
-            st.session_state.setup_market_type = market_type
 
         with col_wiz1:
+            # Onboarding selectbox
             sector_choice = st.selectbox(
                 "Select Broad Industry Recommendation:",
                 [
@@ -388,77 +464,33 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
                     "💼 Professional B2B Services (Logistics, Consulting, HR)",
                     "📦 Retail, Wholesale & Consumer Goods",
                     "✍️ Custom Sector (Write my own)"
-                ]
+                ],
+                key="preset_recommendation_widget",
+                on_change=on_preset_recommendation_change
             )
-        
-        suggested_personas = []
-        suggested_moods = []
-        default_product = ""
-        
-        # Suggested lists
-        if sector_choice == "💻 B2B Software & Enterprise SaaS":
-            default_product = "Enterprise Cloud Security SaaS"
-            suggested_personas = ["Chief Information Security Officer (CISO)", "Chief Financial Officer (CFO)", "VP of Sales Operations", "Director of HR & Benefits", "Chief Technology Officer (CTO)", "VP of Global Procurement", "Custom (Write my own)"]
-            suggested_moods = ["Defensive about cold calls, extremely busy, budget locked", "Analytical, protective of company overhead, wants exact ROI", "Skeptical, happy with current competitor, refuses complex setup", "Custom (Write my own)"]
-        elif sector_choice == "🔨 Construction, Trades & Mechanical Services (Jobtable/MEP)":
-            default_product = "Contractor Dispatch & Invoicing App"
-            suggested_personas = ["Plumbing Contractor Owner", "Electrical Shop Owner", "HVAC Project Supervisor", "MEP General Contractor", "Roofing Business Owner", "Solar Installer Director", "Professional Commercial Painter", "Custom (Write my own)"]
-            suggested_moods = ["Super stressed, working under a sink, hates sales scripts", "Driving between jobs, behind on QuickBooks, paperwork backlog", "On a rooftop, happy with pen and paper whiteboard layouts", "Custom (Write my own)"]
-        elif sector_choice == "🧱 Building Materials, Paints, Tiles & Finishing":
-            default_product = "Premium Paints, Tiles, Kitchens & Sanitary Wares"
-            if market_type == "💻 B2B (Business-to-Business)":
-                suggested_personas = ["Real Estate Developer (Large-Scale Residential)", "Architect / Lead Interior Designer", "Quantity Surveyor (QS) (Budget & BOQ auditor)", "Civil Engineer / Project Site Manager", "Custom (Write my own)"]
-                suggested_moods = ["Demanding heavy bulk-discounts, strictly auditing BOQ material costs", "Skeptical of tile shading batches and shipment arrival timelines on site", "Highly critical of paint color-fading, wants luxury sanitary ware durability", "Custom (Write my own)"]
-            else:
-                suggested_personas = ["Private Homeowner (Finishing personal build)", "Self-Build Family Owner", "Custom (Write my own)"]
-                suggested_moods = ["Anxious about high material costs, wants long durability guarantees", "Confused by colors and style choices, wants simple design help", "Fear of installer mistakes and delayed home project handovers", "Custom (Write my own)"]
-        elif sector_choice == "🏠 Real Estate, Mortgages & Housing":
-            default_product = "Residential Listing & Selling Services"
-            if market_type == "💻 B2B (Business-to-Business)":
-                suggested_personas = ["Commercial Real Estate Investor", "Corporate Property Manager", "Custom (Write my own)"]
-                suggested_moods = ["Opportunistic, looking for immediate off-market deals", "Strictly focused on yield margins and tenant turnover rates", "Custom (Write my own)"]
-            else:
-                suggested_personas = ["For Sale By Owner (FSBO) Private seller", "First-Time Home Buyer", "Licensed Mortgage Broker", "Custom (Write my own)"]
-                suggested_moods = ["Annoyed by listing agents, defensive, wants zero commission", "Confused by paperwork, anxious about mortgage interest rates", "Custom (Write my own)"]
-        elif sector_choice == "🏥 Medical, Clinical & Biotech Services":
-            default_product = "Patient Intake & Cloud Billing Software"
-            suggested_personas = ["Private Clinical Lead Administrator", "Chief Medical Officer (CMO)", "Hospital Procurement Officer", "Dental Practice Manager", "Lead Physical Therapist", "Custom (Write my own)"]
-            suggested_moods = ["Heavily distracted, burdened by compliance and regulations", "Skeptical of training time, worries about patient HIPAA data leak", "Strictly focused on procurement cost-savings, protective", "Custom (Write my own)"]
-        elif sector_choice == "💼 Professional B2B Services (Logistics, Consulting, HR)":
-            default_product = "Third-Party Fleet & Logistics Consulting"
-            suggested_personas = ["VP of Fleet Logistics", "Corporate Human Resources Director", "Managing Director", "Custom (Write my own)"]
-            suggested_moods = ["Stressed by fuel costs and supply chain delays", "Overwhelmed by employee turnover, looking for staffing speed", "Analytical, focusing on structural operating overhead", "Custom (Write my own)"]
-        elif sector_choice == "📦 Retail, Wholesale & Consumer Goods":
-            default_product = "Wholesale Inventory Management Portal"
-            suggested_personas = ["Retail Store Manager", "Regional Category Buyer", "Wholesale Distribution Director", "Custom (Write my own)"]
-            suggested_moods = ["Defensive about shelf space and inventory turns", "Demanding large volume discounts, highly price-sensitive", "Anxious about shipping times and shelf storage backlog", "Custom (Write my own)"]
-        elif sector_choice == "✍️ Custom Sector (Write my own)":
-            default_product = ""
-            suggested_personas = ["Custom (Write my own)"]
-            suggested_moods = ["Custom (Write my own)"]
-
-        # Apply suggestions if selected
-        if sector_choice != "Select Industry Recommendation..." and sector_choice != "":
-            st.session_state.setup_industry = default_product
-            if suggested_personas:
-                st.session_state.setup_persona = suggested_personas[0]
-            if suggested_moods:
-                st.session_state.setup_mood = suggested_moods[0]
 
         st.write("")
         st.write("##### 🔧 Custom Setup Parameters (Type or Edit freely):")
-        col_in1, col_in2, col_in3 = st.columns(3)
+        col_in1, col_in2, col_in_name, col_in3 = st.columns(4)
         with col_in1:
-            ui_industry = st.text_input("My Product / Platform:", value=st.session_state.setup_industry, placeholder="e.g. Invoicing App, HR Software, Real Estate, Paints, Tiles", key="call_prod_inp")
+            ui_industry = st.text_input("My Product / Platform:", key="setup_industry", placeholder="e.g. Invoicing App, HR Software, Real Estate, Paints, Tiles")
         with col_in2:
-            ui_persona = st.text_input("Target Customer Title / Role:", value=st.session_state.setup_persona, placeholder="e.g. Architect, Builder, CISO, Homeowner", key="call_pers_inp")
+            ui_persona = st.text_input("Target Customer Title / Role:", key="setup_persona", placeholder="e.g. Architect, Builder, CISO, Homeowner")
+        with col_in_name:
+            ui_cust_name = st.text_input(
+                "Target Customer Name (Optional):",
+                key="setup_customer_name",
+                placeholder="e.g. Bob, Sarah, Marcus",
+                help="""
+                **What to input:** Enter the actual name of your customer/decision maker if you know it (e.g. Bob or Sarah).
+                
+                **Why it matters:** This automatically personalizes all outbound opener scripts, follow-up emails, and text replies.
+                
+                **What happens if left blank:** The app will automatically generate professional opening lines that find and verify the buyer's first name, helping you bypass the gatekeeper without robotic title cold calls like "Hi Plumber."
+                """
+            )
         with col_in3:
-            ui_mood = st.text_input("Buyer's Current Mood / Style:", value=st.session_state.setup_mood, placeholder="e.g. Stressed on site, highly skeptical of quality, defensive", key="call_mood_inp")
-
-        # Save and Apply inputs in state
-        st.session_state.setup_industry = ui_industry
-        st.session_state.setup_persona = ui_persona
-        st.session_state.setup_mood = ui_mood
+            ui_mood = st.text_input("Buyer's Current Mood / Style:", key="setup_mood", placeholder="e.g. Stressed on site, highly skeptical of quality, defensive")
 
         # 💾 Profile Manager Expander
         st.write("")
@@ -469,7 +501,7 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
             with col_save2:
                 save_click = st.button("💾 Save Configuration")
                 if save_click and profile_save_name:
-                    save_user_profile(profile_save_name, ui_industry, ui_persona, ui_mood, market_type)
+                    save_user_profile(profile_save_name, ui_industry, ui_persona, ui_mood, ui_cust_name, market_type)
                     st.success(f"Profile '{profile_save_name}' saved permanently!")
                     time.sleep(0.5)
                     st.rerun()
@@ -542,8 +574,8 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
                             feedback_msg = "Your response was too short. Speak with confident pacing and clarity."
                             end_call = True
 
-                        # 1. LIVE GOOGLE GEMINI MODE
-                        elif st.session_state.active_api_provider == "Google Gemini API" and st.session_state.api_connected:
+                        # 1. LIVE GOOGLE GEMINI MODE (Natively powered by st.session_state securely saved keys!)
+                        elif api_provider == "Google Gemini API" and st.session_state.api_connected:
                             try:
                                 import google.generativeai as genai
                                 genai.configure(api_key=st.session_state.active_api_key)
@@ -558,12 +590,6 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
                                     Your Goal: Act as a highly realistic, tough, skeptical buyer. Respond to the user's messages brief, blunt, and naturally.
                                     If the category is B2C (Business-to-Consumer), act as a private consumer making a personal household purchase. Push back with consumer objections: household budgets, spouse approvals, disruption inside your home, quality guarantees, and local neighborhood reviews.
                                     If the category is B2B (Business-to-Business), act as an enterprise stakeholder focusing on business metrics: ROI, contract timelines, and team integration.
-                                    
-                                    Rules of Engagement:
-                                    1. Stay completely in character.
-                                    2. Do not agree to a 10-minute meeting on the first turn. Push back at least twice.
-                                    3. If they handle your objections well (using consultative empathy, avoiding scripts, showing clear micro-value, and proposing a frictionless 10-minute meeting), agree to the calendar invite.
-                                    4. If they read a scripted pitch, use tech jargon, or don't listen, hang up on them.
                                     """
                                 )
                                 response = model.generate_content(user_msg)
@@ -574,8 +600,8 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
                             except Exception as e:
                                 st.error(f"Gemini API Error: {str(e)}. Defaulting to Practice Simulator.")
 
-                        # 2. LIVE DEEPSEEK AI MODE
-                        elif st.session_state.active_api_provider == "DeepSeek API" and st.session_state.api_connected:
+                        # 2. LIVE DEEPSEEK AI MODE (Natively powered by st.session_state securely saved keys!)
+                        elif api_provider == "DeepSeek API" and st.session_state.api_connected:
                             try:
                                 headers = {
                                     "Content-Type": "application/json",
@@ -611,7 +637,7 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
                                     feedback_msg = "Outstanding close! You validated their pains and successfully booked a low-friction meeting!"
                                     end_call = True
                                 else:
-                                    ai_reply = f"A meeting? I just told you I'm in the middle of a job site / busy. I don't even know why I should care. What are you actually selling?"
+                                    ai_reply = f"A meeting? I just told you I'm in the middle of a job site. I don't even know why I should care. What are you actually selling?"
                                     score_deduction = 15
                                     feedback_msg = "You went for the meeting/demo ask too fast. Handle an objection and build basic value first!"
                             
@@ -685,25 +711,131 @@ if active_module == "📞 Module A: Outbound Cold-Call Assistant Agent (Core Sim
         st.subheader("🎯 Cold Call Opener Architect")
         st.write("Build high-converting opening lines (hooks) designed to disarm busy prospects based on modern sales methodologies.")
         
+        # Initialize session states for Opener refinement and multiple alternative thoughts!
+        if "messages_opener_active" not in st.session_state:
+            st.session_state.messages_opener_active = False
+            
         col_op1, col_em2 = st.columns(2)
         with col_op1:
             op_product = st.text_input("My Product/Platform Name:", value=ui_industry, key="op_prod")
             op_persona = st.text_input("Target Customer Job Title:", value=ui_persona.split(',')[0], key="op_pers")
             op_framework = st.selectbox("Sales Framework Hook:", ["Sandler (Empathy & Permission)", "Challenger (Disruptive State)", "Collaborative (Low-Pressure Permission)"], key="op_frame")
-        with col_em2:
-            st.write("### Generated Outbound Opening Line")
+            
+            # Action Button Row (With 1-click Alternative Generator Button! old ones do not get wiped, they push downwards!)
             if st.button("✨ Architect Opening Hook", type="primary", use_container_width=True, key="op_btn"):
                 with st.spinner("AI is engineering your hook..."):
                     time.sleep(0.8)
+                    cust_name = st.session_state.get("setup_customer_name", "").strip()
+                    name_to_use = cust_name if cust_name else "[Name]"
                     
                     if op_framework == "Sandler (Empathy & Permission)":
-                        script_text = f"\"Hey {op_persona.split()[0] if op_persona else '[Name]'}, I know you weren't expecting my call and you're probably in the middle of something. I promise to be brief. Do you have 30 seconds for me to tell you why I called, and you can tell me if we should hang up?\""
+                        script_text = f"\"Hey {name_to_use}, I know you weren't expecting my call and you're probably in the middle of something. I promise to be brief. Do you have 30 seconds for me to tell you why I called, and you can tell me if we should hang up?\""
                     elif op_framework == "Challenger (Disruptive State)":
-                        script_text = f"\"Hey {op_persona.split()[0] if op_persona else '[Name]'}, I'm calling because most managers in your industry tell us they are wasting 10 hours a week on manual admin work. We built {op_product if op_product else '[My Product]'} to automate that in 1 click. Are you experiencing that administrative bottleneck too?\""
+                        script_text = f"\"Hey {name_to_use}, I'm calling because most managers in your industry tell us they are wasting 10 hours a week on manual admin work. We built {op_product if op_product else '[My Product]'} to automate that in 1 click. Are you experiencing that administrative bottleneck too?\""
                     else:
-                        script_text = f"\"Hey {op_persona.split()[0] if op_persona else '[Name]'}, I was looking at your recent operations. I won't give you a long pitch. I just wanted to share how similar teams are using {op_product if op_product else '[My Product]'} to solve their scheduling friction. Do you have 30 seconds for a quick permission check?\""
+                        script_text = f"\"Hey {name_to_use}, I was looking at your recent operations. I won't give you a long pitch. I just wanted to share how similar teams are using {op_product if op_product else '[My Product]'} to solve their scheduling friction. Do you have 30 seconds for a quick permission check?\""
                     
-                    st.info(f"**Opening Line Script:**\n\n{script_text}")
+                    # Prepend/Insert at index 0 so old thoughts push downwards!
+                    st.session_state.opener_ideas.insert(0, {"timestamp": time.strftime("%H:%M:%S"), "content": script_text, "framework": op_framework})
+                    st.session_state.messages_opener_active = True
+                    st.rerun()
+                    
+            if st.session_state.messages_opener_active:
+                # 🔄 Generate Alternative Idea Button (Directly fulfills your request!)
+                if st.button("🔄 Generate Alternative Idea / Thought", use_container_width=True, key="op_regen_btn"):
+                    with st.spinner("AI is generating an alternative line of thought..."):
+                        time.sleep(0.8)
+                        cust_name = st.session_state.get("setup_customer_name", "").strip()
+                        name_to_use = cust_name if cust_name else "[Name]"
+                        
+                        # Alternative hook scripts
+                        if op_framework == "Sandler (Empathy & Permission)":
+                            alt_text = f"\"Hey {name_to_use}, I'll be completely upfront—I caught you on a cold call and you're probably busy. I won't pitch. Do you have 20 seconds to do a quick qualification check to see if we should hang up?\""
+                        elif op_framework == "Challenger (Disruptive State)":
+                            alt_text = f"\"Hey {name_to_use}, average companies in your field bleed $500 a month in unlogged materials technicians forget to charge for on-site. We built our app to stop that. Is material leakage a priority on your site today?\""
+                        else:
+                            alt_text = f"\"Hey {name_to_use}, I was hoping to grab just a low-friction 10-second calendar slot next week. I won't give you a pitch now. Can we grab Tuesday morning before your first run?\""
+                        
+                        # Prepend to history list so old ones push downwards!
+                        st.session_state.opener_ideas.insert(0, {"timestamp": time.strftime("%H:%M:%S"), "content": alt_text, "framework": f"{op_framework} (Alternative Option)"})
+                        st.rerun()
+
+        with col_em2:
+            if st.session_state.opener_ideas:
+                st.write("### 🔥 Active Outbound Hooks")
+                # Loop and render ideas history. Newest at the top, pushing older ones down!
+                for idx, idea in enumerate(st.session_state.opener_ideas):
+                    if idx == 0:
+                        st.markdown(f"""
+                        <div style='background-color: #ffffff; padding: 20px; border-radius: 12px; border: 2px solid #1e40af; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(30,64,175,0.05);'>
+                            <span class='badge-premium' style='background: #1e40af;'>ACTIVE CURRENT IDEA ({idea['timestamp']})</span>
+                            <p style='font-size: 15px; font-weight: 500; margin-top: 10px; margin-bottom: 8px;'>{idea['content']}</p>
+                            <small style='color: gray;'>Framework: {idea['framework']}</small>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"""
+                        <div style='background-color: #f8fafc; padding: 15px; border-radius: 10px; border: 1px dashed #cbd5e1; margin-bottom: 12px; opacity: 0.65;'>
+                            <small style='color: gray; font-weight: bold;'>PREVIOUS IDEA ({idea['timestamp']}) - {idea['framework']}</small>
+                            <p style='font-size: 13.5px; margin-top: 5px; margin-bottom: 0px;'>{idea['content']}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                # 💬 Interactive Refinement Chat (Pops up dynamically *only* after output is generated!)
+                st.write("---")
+                st.write("### 💬 Conversational Refinement Chat (Fine-tune your pitch)")
+                st.write("Is your buyer an introvert? Do they only answer at 5 PM? Type your context or real-time feedback below to refine the active hook dynamically:")
+                
+                for chat in st.session_state.opener_chat_history:
+                    with st.chat_message(chat["role"]):
+                        st.write(chat["content"])
+                        
+                refine_input = st.chat_input("Tell the AI coach how to adjust the pitch (e.g. 'He is extremely defensive and suspicious')...", key="opener_refine_chat_input")
+                if refine_input:
+                    st.session_state.opener_chat_history.append({"role": "user", "content": refine_input})
+                    
+                    with st.spinner("Refining pitch details based on your customer scenario..."):
+                        if st.session_state.api_connected:
+                            try:
+                                active_hook = st.session_state.opener_ideas[0]["content"]
+                                prompt = f"""
+                                You are "Sales Outbound Coach."
+                                We generated this cold-call opening line: {active_hook}.
+                                The user (Ikechukwu) wants to adjust and refine this pitch because: "{refine_input}".
+                                
+                                Rewrite and optimize the script based on this specific customer behavior or scenario (e.g., if they are an introvert, make it highly respectful, slow, low-friction, and zero hype). 
+                                Make sure it is highly natural, consultative, and directly addresses the scenario they painted.
+                                Citing the sales psychology behind your adjustment.
+                                """
+                                
+                                if st.session_state.active_api_provider == "Google Gemini API":
+                                    import google.generativeai as genai
+                                    genai.configure(api_key=st.session_state.active_api_key)
+                                    model = genai.GenerativeModel(st.session_state.active_model_name)
+                                    response = model.generate_content(prompt)
+                                    reply = response.text
+                                elif st.session_state.active_api_provider == "DeepSeek API":
+                                    headers = {
+                                        "Content-Type": "application/json",
+                                        "Authorization": f"Bearer {st.session_state.active_api_key}"
+                                    }
+                                    data = {
+                                        "model": "deepseek-chat",
+                                        "messages": [{"role": "user", "content": prompt}],
+                                        "temperature": 0.7
+                                    }
+                                    response = requests.post("https://api.deepseek.com/v1/chat/completions", json=data, headers=headers, timeout=15)
+                                    reply = response.json()["choices"][0]["message"]["content"]
+                            except Exception as e:
+                                reply = f"Error connecting to AI: {str(e)}"
+                        else:
+                            time.sleep(1.0)
+                            reply = f"**[Assistant Suggestion]** (Simulated Response based on: *{refine_input}*)\n\nSince your prospect is an introvert or highly defensive, we should completely cut out high-energy sales enthusiasm. Lower your voice tone, slow your pacing, and use absolute micro-commitment language. Here is your adjusted cold opener:\n\n*\"Hey {st.session_state.get('setup_customer_name', '[Name]')}, I'll be brief because I know you're busy running your site. I'm calling from SalesFlow—I was hoping you could help me out. Who coordinates your team schedules, is that you or should I speak with someone else?\"*"
+                            
+                        st.session_state.opener_chat_history.append({"role": "assistant", "content": reply})
+                        st.rerun()
+            else:
+                st.info("🎯 Configure your parameters on the left and click **'Architect Opening Hook'** to generate your initial scripts and unlock the interactive refinement chat room!")
 
     # 3. CONSULTATIVE DISCOVERY GENERATOR
     with sub_tab_discovery:
@@ -828,34 +960,139 @@ elif active_module == "🤝 Module B: General Closing & Outreach Copilot (Face-t
         st.subheader("🤝 Face-to-Face Negotiation & Closing Planner")
         st.write("Prepare for high-stakes, in-person physical sales meetings. Map out your presentation structure, on-the-spot body-language triggers, and consultative closes:")
         
+        # Initialize session states for Physical refinement and alternative ideas
+        if "messages_physical_active" not in st.session_state:
+            st.session_state.messages_physical_active = False
+
         col_ph1, col_ph2 = st.columns(2)
         with col_ph1:
             ph_cust = st.text_input("Customer Name / Industry:", value=st.session_state.setup_persona, placeholder="e.g. Bob, Miller Plumbing Owner", key="ph_cust_inp")
             ph_product = st.text_input("Product Being Pitched:", value=st.session_state.setup_industry, placeholder="e.g. Jobtable Scheduling App", key="ph_prod_inp")
             ph_agenda = st.selectbox("Primary Meeting Agenda Goal:", ["Present Custom Proposal & Sign Contract", "On-site Technical Discovery Demo", "Overcome Skeptical Board Objections"], key="ph_agenda_select")
-            ph_generate = st.button("📋 Compose Negotiation Battle-Plan", type="primary", key="ph_gen_btn")
-        with col_ph2:
-            if ph_generate:
+            
+            if st.button("📋 Compose Negotiation Battle-Plan", type="primary", key="ph_gen_btn"):
                 with st.spinner("AI is formulating your physical meeting guide..."):
                     time.sleep(0.9)
-                    st.markdown(
-                        f"""
-                        ### 🤝 In-Person closing Battle-Plan: {ph_cust.split(',')[0] if ph_cust else 'Prospect'}
+                    
+                    script_text_phys = f"""
+                    ### 🤝 In-Person closing Battle-Plan: {ph_cust.split(',')[0] if ph_cust else 'Prospect'}
+                    
+                    #### 1. Meeting Agenda & Setup Flow
+                    *   **Visual Opening Hook (Minutes 0-5):** Don't open with slides. Hold up a physical prop related to their pain (e.g. a receipt book, or a tablet with their competitor's schedule) to break the ice.
+                    *   **Discovery Recap:** *\"Marcus/Bob, when we spoke on the phone, you mentioned that your biggest operational headache was late-night bookkeeping and lost material billings. Is that still your #1 barrier to scaling?\"*
+                    *   **The consultative Demo (Minutes 5-20):** Focus purely on showing how {ph_product if ph_product else '[My Product]'} removes those 2 specific pains. Speak plain English, let them touch the tablet/phone themselves.
+                    
+                    #### 2. Body-Language & Rapport Triggers
+                    *   **Mirroring Energy:** If they are gruff, speak slow and direct. If they are analytical, show data tables.
+                    *   **Handling the 'Skeptical Folded Arms':** Change the focal point of the room. Hand them your tablet or product brochure so they are forced to unfold their arms to receive it.
+                    
+                    #### 3. High-Conversion Close Strategy
+                    *   **The Alternative Close:** *\"Bob, do you want our implementation team to set up your account syncing with QuickBooks on Tuesday afternoon, or would Wednesday morning fit your calendar better?\"*
+                    *   **The Risk-Free Nudge:** *\"We don't lock you into long annual contracts. We do a simple monthly license because we are confident our tool will save you 10 hours this week alone. Let's get your first crew loaded today.\"*
+                    """
+                    
+                    # Prepend/Insert at index 0 so old thoughts push downwards!
+                    st.session_state.physical_ideas.insert(0, {"timestamp": time.strftime("%H:%M:%S"), "content": script_text_phys, "agenda": ph_agenda})
+                    st.session_state.messages_physical_active = True
+                    st.rerun()
+
+            if st.session_state.messages_physical_active:
+                # 🔄 Generate Alternative Idea Button
+                if st.button("🔄 Generate Alternative Closing Idea", use_container_width=True, key="phys_regen_btn"):
+                    with st.spinner("AI is generating another line of thought..."):
+                        time.sleep(0.8)
+                        
+                        alt_script_text_phys = f"""
+                        ### 🤝 Alternative In-Person Closing Battle-Plan: {ph_cust.split(',')[0] if ph_cust else 'Prospect'}
                         
                         #### 1. Meeting Agenda & Setup Flow
-                        *   **Visual Opening Hook (Minutes 0-5):** Don't open with slides. Hold up a physical prop related to their pain (e.g. a receipt book, or a tablet with their competitor's schedule) to break the ice.
-                        *   **Discovery Recap:** *\"Marcus/Bob, when we spoke on the phone, you mentioned that your biggest operational headache was late-night bookkeeping and lost material billings. Is that still your #1 barrier to scaling?\"*
-                        *   **The consultative Demo (Minutes 5-20):** Focus purely on showing how {ph_product if ph_product else '[My Product]'} removes those 2 specific pains. Speak plain English, let them touch the tablet/phone themselves.
+                        *   **The Case Study Opener (Minutes 0-5):** Share a laminated 1-page visual report of a direct competitor/neighbor who increased their profits by 15% using your product. Let them review the charts.
+                        *   **The consultative Demo (Minutes 5-20):** Show only core features. Avoid any heavy technical details. Keep it extremely brief and high-value.
                         
-                        #### 2. Body-Language & Rapport Triggers
-                        *   **Mirroring Energy:** If they are gruff, speak slow and direct. If they are analytical, show data tables.
-                        *   **Handling the 'Skeptical Folded Arms':** Change the focal point of the room. Hand them your tablet or product brochure so they are forced to unfold their arms to receive it.
-                        
-                        #### 3. High-Conversion Close Strategy
-                        *   **The Alternative Close:** *\"Bob, do you want our implementation team to set up your account syncing with QuickBooks on Tuesday afternoon, or would Wednesday morning fit your calendar better?\"*
-                        *   **The Risk-Free Nudge:** *\"We don't lock you into long annual contracts. We do a simple monthly license because we are confident our tool will save you 10 hours this week alone. Let's get your first crew loaded today.\"*
+                        #### 2. Close Strategy
+                        *   **The Pilot Project Offer:** *\"Let's do a simple 14-day test pilot with just two of your active field crews. We'll set it up in 5 minutes today. If your crews don't absolutely love using it by next Friday, we disconnect and you don't pay a cent. Is that fair enough?\"*
                         """
-                    )
+                        
+                        # Prepend to history list so old ones push downwards!
+                        st.session_state.physical_ideas.insert(0, {"timestamp": time.strftime("%H:%M:%S"), "content": alt_script_text_phys, "agenda": f"{ph_agenda} (Alternative Close)"})
+                        st.rerun()
+
+        with col_ph2:
+            if st.session_state.physical_ideas:
+                st.write("### 🔥 Active Closing Playbooks")
+                # Loop and render ideas history. Newest at the top, pushing older ones down!
+                for idx, idea in enumerate(st.session_state.physical_ideas):
+                    if idx == 0:
+                        st.markdown(f"""
+                        <div style='background-color: #ffffff; padding: 20px; border-radius: 12px; border: 2px solid #7c3AED; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(124,58,237,0.05);'>
+                            <span class='badge-premium' style='background: #7c3AED;'>ACTIVE PLAYBOOK ({idea['timestamp']})</span>
+                            <div style='margin-top: 10px;'>{idea['content']}</div>
+                            <small style='color: gray;'>Agenda: {idea['agenda']}</small>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"""
+                        <div style='background-color: #f8fafc; padding: 15px; border-radius: 10px; border: 1px dashed #cbd5e1; margin-bottom: 12px; opacity: 0.65;'>
+                            <small style='color: gray; font-weight: bold;'>PREVIOUS PLAYBOOK ({idea['timestamp']}) - {idea['agenda']}</small>
+                            <div style='font-size: 13.5px; margin-top: 5px; margin-bottom: 0px;'>{idea['content']}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                # 💬 Interactive Refinement Chat
+                st.write("---")
+                st.write("### 💬 Conversational Refinement Chat (Fine-tune your playbook)")
+                st.write("Does your buyer have a specific behavior? (e.g. they only make decisions on Sundays, or they are extremely suspicious of hidden warranties?) Type below to adjust:")
+                
+                for chat in st.session_state.physical_chat_history:
+                    with st.chat_message(chat["role"]):
+                        st.write(chat["content"])
+                        
+                refine_input_phys = st.chat_input("Tell the AI coach how to adjust the playbook...", key="phys_refine_chat_input")
+                if refine_input_phys:
+                    st.session_state.physical_chat_history.append({"role": "user", "content": refine_input_phys})
+                    
+                    with st.spinner("Refining closing details based on your customer scenario..."):
+                        if st.session_state.api_connected:
+                            try:
+                                active_playbook = st.session_state.physical_ideas[0]["content"]
+                                prompt = f"""
+                                You are "Sales Outbound Coach."
+                                We generated this physical meeting battle-plan: {active_playbook}.
+                                The user (Ikechukwu) wants to adjust and refine this playbook because: "{refine_input_phys}".
+                                
+                                Rewrite and optimize the playbook based on this specific customer behavior or scenario. 
+                                Make sure it is highly natural, consultative, and directly addresses the scenario they painted.
+                                Citing the sales psychology behind your adjustment.
+                                """
+                                
+                                if st.session_state.active_api_provider == "Google Gemini API":
+                                    import google.generativeai as genai
+                                    genai.configure(api_key=st.session_state.active_api_key)
+                                    model = genai.GenerativeModel(st.session_state.active_model_name)
+                                    response = model.generate_content(prompt)
+                                    reply = response.text
+                                elif st.session_state.active_api_provider == "DeepSeek API":
+                                    headers = {
+                                        "Content-Type": "application/json",
+                                        "Authorization": f"Bearer {st.session_state.active_api_key}"
+                                    }
+                                    data = {
+                                        "model": "deepseek-chat",
+                                        "messages": [{"role": "user", "content": prompt}],
+                                        "temperature": 0.7
+                                    }
+                                    response = requests.post("https://api.deepseek.com/v1/chat/completions", json=data, headers=headers, timeout=15)
+                                    reply = response.json()["choices"][0]["message"]["content"]
+                            except Exception as e:
+                                reply = f"Error connecting to AI: {str(e)}"
+                        else:
+                            time.sleep(1.0)
+                            reply = f"**[Assistant Suggestion]** (Simulated Response based on: *{refine_input_phys}*)\n\nSince your prospect has this specific constraint, we should completely adjust our closing focus. Never force them to make a decision immediately in the room. Instead, map out a clear 'Step-by-step Implementation Plan' showing how your service/app manages transition downtime, and offer to do a walkthrough for their back-office manager next week Tuesday to get their buy-in first."
+                            
+                        st.session_state.physical_chat_history.append({"role": "assistant", "content": reply})
+                        st.rerun()
+            else:
+                st.info("🎯 Configure your parameters on the left and click **'Compose Negotiation Battle-Plan'** to generate your initial playbook and unlock the interactive refinement chat room!")
 
     # 2. AI OUTBOUND PITCH OPTIMIZER
     with sub_tab_optimizer:
@@ -986,7 +1223,6 @@ elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (A
     st.markdown("## 🎓 Sales Academy & Industry Onboarding Hub")
     st.write("This is your intelligent, interactive Sales Enablement Suite. Type any industry below to let the AI build a complete custom step-by-step masterclass course, and take certification exams in real-time.")
     
-    # Restructured tabs to have distinct "Product Training" and "Sales Training Bot" sections! Both fully interactive!
     sub_tab_product_train, sub_tab_sales_train, sub_tab_test, sub_tab_history = st.tabs([
         "📖 Tab 1: Interactive Product & Technical Training",
         "🗣️ Tab 2: Interactive Sales Training Coach Bot",
@@ -1013,7 +1249,7 @@ elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (A
             # Dynamic prompt box for user to share what they are experiencing on active sites or what technical terms they need help with
             user_thoughts_prod = st.text_area(
                 "🙋 Share your site experiences or ask any technical/domain questions about this field:",
-                placeholder="e.g. In my painting business, the architect wants to verify UV fading resistance, what is the technical terminology for this? OR Plumbers complain that they hate using apps with wet hands."
+                placeholder="e.g. In B2B SaaS, why do procurement teams demand a SOC-2 security compliance audit? OR What represents the typical curing time for professional masonry projects?"
             )
             submit_thought_prod = st.button("✨ Connect with Product AI", type="primary")
             
@@ -1028,6 +1264,7 @@ elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (A
                     You are "Product Training Assistant." 
                     The user is a salesperson who wants to learn the absolute technical, verified, and research-backed facts about {user_study_industry}. 
                     They are sharing this experience/asking this question: "{user_thoughts_prod}".
+                    The sales motion category is: {st.session_state.setup_market_type}.
                     
                     Answer their question with highly accurate, verified data. Citing engineering standards, material sciences, or proven industry statistics.
                     
@@ -1078,7 +1315,7 @@ elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (A
                         *   **UV / Shading Science:** Material specs require ASTM standard testing for tensile strength and weather weathering. Batch-color consistency is a physical limitation of firing kilns/chemical mixtures.
                         
                         ## 💡 [ASSISTANT SUGGESTION]:
-                        *   *My Suggestion:* When presenting to high-end architects or engineers, do not pitch "low price." Focus on "shading guarantees," "delivery log warranties," and "ASTM specification compliance" to establish immediate peer trust.
+                        *   *My Suggestion:* When presenting to high-end architects or engineers, do not pitch \"low price.\" Focus on \"shading guarantees,\" \"delivery log warranties,\" and \"ASTM specification compliance\" to establish immediate peer trust.
                         """
                         
                     # Save and display chat log
@@ -1133,6 +1370,7 @@ elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (A
                     sales_prompt = f"""
                     You are "Sales Training Bot" — an elite, research-backed consultative sales coach.
                     The user is a sales representative. They are sharing their sales experience / asking this question: "{user_thoughts_sales}".
+                    The sales motion category is: {st.session_state.setup_market_type}.
                     
                     Explain the behavioral science and sales psychology behind their query, citing standard sales methodologies (like SPIN, Sandler, or BANT) where applicable.
                     
@@ -1175,11 +1413,11 @@ elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (A
                             st.error(f"DeepSeek API Error: {str(e)}")
                             
                     # 3. OFFLINE SIMULATOR MODE
-                    if not ai_reply:
+                    if not ai_response_sales:
                         time.sleep(1.0)
                         ai_response_sales = f"""
                         ## 📚 VERIFIED SALES PSYCHOLOGY & RESEARCH:
-                        *   **Cognitive Reflex:** The primary reason prospects hang up when you ask for a demo is **Sales-Defense Reflex** (triggered by pushing for a high-commitment ask too early). Outbound research shows that asking for a 30-minute demo on the first call has a **<5% booking rate**, whereas proposing a 10-minute "no-pressure permission check" boosts conversion by over **18%** (Source: Gong.io conversation intelligence studies).
+                        *   **Cognitive Reflex:** The primary reason prospects hang up when you ask for a demo is **Sales-Defense Reflex** (triggered by pushing for a high-commitment ask too early). Outbound research shows that asking for a 30-minute demo on the first call has a **<5% booking rate**, whereas proposing a 10-minute \"no-pressure permission check\" boosts conversion by over **18%** (Source: Gong.io conversation intelligence studies).
                         
                         ## 💡 [ASSISTANT SUGGESTION]:
                         *   *My Suggestion:* When a prospect objects, do not push. De-escalate immediately. Say: *\"Bob, I completely understand. I'm actually catching you mid-run, so I'll let you get right back to the job. I don't want to pitch you now. Can we grab just a low-friction 10 minutes next week Tuesday at 8:00 AM before your day starts? If it doesn't make sense, we hang up. Fair enough?\"*
@@ -1253,7 +1491,7 @@ elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (A
                     a1_opts = ["Shout and act important", "Ask low-pressure questions with a confident, friendly peer-like tone", "Offer them a discount key"]
                     q2 = "2. What does 'Sandler low-pressure permission hook' represent?"
                     a2_opts = ["Asking for permission to speak for 30 seconds, disarming protective sales filters", "Sending a contract over SMS", "Bribing the prospect"]
-                    correct_ans = [a1_opts[0], a2_role_map[0] if "a2_role_map" in globals() else a2_opts[0]]
+                    correct_ans = [a1_opts[0], a2_opts[0]]
             else:
                 # MIXED TRACK
                 q1 = "1. What represents the cost-of-inaction (COI) for an organization staying with manual paperwhiteboards?"
@@ -1307,7 +1545,7 @@ elif active_module == "🎓 Module C: Sales Academy & Industry Onboarding Hub (A
                 st.session_state.quiz_history.append(history_entry)
                 st.success("Performance result logged in your private study history log!")
 
-    # 4. MY QUIZ PERFORMANCE HISTORY
+    # 3. MY QUIZ PERFORMANCE HISTORY
     with sub_tab_history:
         st.subheader("📜 My Private Study History Log")
         st.write("Use this logs database to trace your incorrect answers, analyze structural sales mistakes, and catch up to speed:")
